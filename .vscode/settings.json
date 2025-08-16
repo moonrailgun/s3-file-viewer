@@ -1,0 +1,5 @@
+{
+  "rust-analyzer.linkedProjects": [
+    "s3-file-viewer/src-tauri/Cargo.toml"
+  ]
+}

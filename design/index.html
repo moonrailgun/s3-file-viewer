@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S3 File Viewer - Welcome</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .welcome-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 60px;
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .logo {
+            font-size: 48px;
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 20px;
+        }
+
+        .subtitle {
+            color: #6c757d;
+            margin-bottom: 40px;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        .features {
+            text-align: left;
+            margin: 40px 0;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .features h3 {
+            color: #495057;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 10px 0;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-list li::before {
+            content: "✅";
+            font-size: 16px;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .version-info {
+            margin-top: 30px;
+            color: #adb5bd;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome-container">
+        <div class="logo">
+            📁 S3 File Viewer
+        </div>
+        <div class="subtitle">
+            Professional S3 Protocol File Browser Client<br>
+            Supports AWS S3, MinIO, Alibaba Cloud OSS, Tencent Cloud COS, etc.
+        </div>
+
+        <div class="features">
+            <h3>Key Features</h3>
+            <ul class="feature-list">
+                <li>Multi-platform S3 service support</li>
+                <li>Intuitive file browsing interface</li>
+                <li>File upload, download, and deletion</li>
+                <li>Folder creation and management</li>
+                <li>Secure connection management</li>
+                <li>Responsive design, supports multiple devices</li>
+            </ul>
+        </div>
+
+        <button class="start-btn" onclick="startApp()">
+            Get Started
+        </button>
+
+        <div class="version-info">
+            Version 1.0.0 | Built with Web Technologies
+        </div>
+    </div>
+
+    <script>
+        function startApp() {
+            // Check if already connected
+            const savedConnection = localStorage.getItem('s3-connection');
+            if (savedConnection) {
+                const connection = JSON.parse(savedConnection);
+                if (connection.connected) {
+                    // If already connected, go directly to file browser
+                    window.location.href = 'browser.html';
+                } else {
+                    // If connection status is false, go to login page
+                    window.location.href = 'login.html';
+                }
+            } else {
+                // If no connection info, go to login page
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Auto-check connection status after page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedConnection = localStorage.getItem('s3-connection');
+            if (savedConnection) {
+                const connection = JSON.parse(savedConnection);
+                if (connection.connected) {
+                    // If already connected, auto-redirect after 3 seconds
+                    setTimeout(() => {
+                        window.location.href = 'browser.html';
+                    }, 3000);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

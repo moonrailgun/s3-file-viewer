@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "clipboard-cap",
+  "description": "enable clipboard read/write",
+  "windows": ["*"],
+  "permissions": [
+    "clipboard-manager:allow-write-text",
+    "clipboard-manager:allow-read-text"
+  ]
+}

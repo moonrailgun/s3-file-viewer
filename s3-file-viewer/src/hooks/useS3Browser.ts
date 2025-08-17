@@ -55,9 +55,14 @@ export function useS3Browser() {
   }
 
   async function ensureObjectUrl(key: string) {
-    if (!bucket) return undefined;
+    if (!bucket) {
+      return undefined;
+    }
     const cached = urlCacheRef.current.get(key);
-    if (cached) return cached;
+    if (cached) {
+      return cached;
+    }
+
     try {
       const url = (await invoke('get_object_url', {
         bucket,

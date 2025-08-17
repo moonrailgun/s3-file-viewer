@@ -10,6 +10,7 @@ import {
   Loader,
 } from '@mantine/core';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { openUrl as openExternalUrl } from '@tauri-apps/plugin-opener';
 import { useS3Browser } from './hooks/useS3Browser';
 import { HeaderBar } from './components/HeaderBar';
@@ -68,26 +69,68 @@ function App() {
   async function copyObjectUrl(key: string) {
     try {
       const url = await ensureObjectUrl(key);
-      if (!url) throw new Error('no url');
-      await navigator.clipboard.writeText(url);
-      notifications.show({ message: 'URL copied', color: 'green' });
+      if (!url) {
+        throw new Error('no url');
+      }
+      await writeText(url);
+      notifications.show({
+        message: 'URL copied to clipboard',
+        color: 'green',
+      });
     } catch (e) {
-      notifications.show({ message: 'Copy failed', color: 'red' });
+      notifications.show({
+        message: `Copy failed: ${e instanceof Error ? e.message : 'Unknown error'}`,
+        color: 'red',
+      });
     }
   }
 
   async function previewInNewWindow(key: string) {
     try {
       const url = await ensureObjectUrl(key);
-      if (!url) throw new Error('no url');
+      if (!url) {
+        throw new Error('no url');
+      }
+
+      console.log('Creating preview window for:', key, 'with URL:', url);
+
       try {
         const label = `preview-${Date.now()}`;
-        new WebviewWindow(label, { url, title: key });
-      } catch (e) {
+        const win = new WebviewWindow(label, {
+          url,
+          title: key,
+          width: 1200,
+          height: 800,
+          center: true,
+          resizable: true,
+          decorations: true,
+        });
+
+        console.log('Preview window created:', win);
+
+        // 监听窗口事件
+        win.once('tauri://created', () => {
+          console.log('Preview window created successfully');
+        });
+
+        win.once('tauri://error', (e) => {
+          console.error('Preview window error:', e);
+          notifications.show({
+            message: `Preview window error: ${e.payload}`,
+            color: 'red',
+          });
+        });
+      } catch (webviewError) {
+        console.error('Webview creation failed:', webviewError);
+        console.log('Falling back to external browser...');
         await openExternalUrl(url);
       }
     } catch (e) {
-      notifications.show({ message: 'Preview failed', color: 'red' });
+      console.error('Preview failed:', e);
+      notifications.show({
+        message: `Preview failed: ${e instanceof Error ? e.message : 'Unknown error'}`,
+        color: 'red',
+      });
     }
   }
 
@@ -173,10 +216,12 @@ function App() {
                       });
                     }
                   }}
+                  onCopyUrl={copyObjectUrl}
+                  onPreviewExternal={previewInNewWindow}
                 />
               ) : (
                 <>
-                  <Group justify="center" gap={2}>
+                  <Group justify="center" align="normal" gap={2}>
                     {objects.map((o) => (
                       <ObjectThumb
                         key={o.key}

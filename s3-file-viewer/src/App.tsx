@@ -11,7 +11,6 @@ import {
 } from '@mantine/core';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { openUrl as openExternalUrl } from '@tauri-apps/plugin-opener';
-import './App.css';
 import { useS3Browser } from './hooks/useS3Browser';
 import { HeaderBar } from './components/HeaderBar';
 import { ConnectForm } from './components/ConnectForm';
@@ -177,7 +176,7 @@ function App() {
                 />
               ) : (
                 <>
-                  <Group>
+                  <Group justify="center" gap={2}>
                     {objects.map((o) => (
                       <ObjectThumb
                         key={o.key}

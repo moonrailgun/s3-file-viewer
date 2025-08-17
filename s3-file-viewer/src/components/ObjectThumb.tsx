@@ -34,7 +34,7 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
   const [inView] = useInViewport(imgRef);
 
   // Get file icon props
-  const iconProps = { size: 48, color: '#6c757d' };
+  const iconProps = { size: 48, color: 'var(--mantine-color-dimmed)' };
 
   useEffect(() => {
     (async () => {
@@ -60,16 +60,16 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
       p="xs"
       gap="xs"
       style={{
-        border: '1px solid #eee',
+        border: '1px solid var(--mantine-color-gray-7)',
         borderRadius: 12,
         width: 220,
         cursor: obj.is_dir ? 'pointer' : 'default',
-        background: 'white',
+        background: 'var(--mantine-color-body)',
         transition: 'all 0.2s ease',
         '&:hover': {
           transform: 'translateY(-2px)',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-          borderColor: '#007bff',
+          borderColor: 'var(--mantine-color-blue-6)',
         },
       }}
       onClick={() => {
@@ -78,12 +78,12 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translateY(-2px)';
         e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-        e.currentTarget.style.borderColor = '#007bff';
+        e.currentTarget.style.borderColor = 'var(--mantine-color-blue-6)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)';
         e.currentTarget.style.boxShadow = 'none';
-        e.currentTarget.style.borderColor = '#eee';
+        e.currentTarget.style.borderColor = 'var(--mantine-color-gray-7)';
       }}
     >
       {obj.is_dir ? (
@@ -95,9 +95,9 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#f8f9fa',
+            background: 'var(--mantine-color-gray-0)',
             borderRadius: 6,
-            border: '2px dashed #dee2e6',
+            border: '2px dashed var(--mantine-color-gray-7)',
           }}
         >
           {getFileIconWithProps(obj.key, obj.is_dir, iconProps)}
@@ -111,7 +111,7 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
             height: 140,
             objectFit: 'cover',
             borderRadius: 6,
-            background: '#fafafa',
+            background: 'var(--mantine-color-body)',
             cursor: 'pointer',
           }}
           onError={async (e) => {
@@ -132,9 +132,9 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#f8f9fa',
+            background: 'var(--mantine-color-gray-0)',
             borderRadius: 6,
-            border: '1px solid #e9ecef',
+            border: '1px solid var(--mantine-color-gray-7)',
           }}
         >
           {getFileIconWithProps(obj.key, obj.is_dir, iconProps)}

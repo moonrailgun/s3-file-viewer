@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActionIcon, Group, Table, Box } from '@mantine/core';
+import { ActionIcon, Group, Table } from '@mantine/core';
 import { S3ObjectInfo } from '../types';
 import { humanFileSize, getFileName } from '../utils/common';
 import { IconTrash, IconCopy, IconEye } from '@tabler/icons-react';
@@ -27,18 +27,30 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
       onClick={() => (o.is_dir ? onEnterDir(o.key) : undefined)}
     >
       <Table.Td style={{ width: '24px' }}>
-        {getFileIconWithProps(o.key, o.is_dir, { size: 20, color: '#6c757d' })}
+        {getFileIconWithProps(o.key, o.is_dir, {
+          size: 20,
+          color: 'var(--mantine-color-dimmed)',
+        })}
       </Table.Td>
       <Table.Td>
         <div>
           <div
-            style={{ fontWeight: 500, color: o.is_dir ? '#007bff' : '#212529' }}
+            style={{
+              fontWeight: 500,
+              color: o.is_dir
+                ? 'var(--mantine-color-blue-6)'
+                : 'var(--mantine-color-text)',
+            }}
           >
             {getFileName(o.key)}
           </div>
           {o.key !== getFileName(o.key) && (
             <div
-              style={{ fontSize: '12px', color: '#6c757d', marginTop: '2px' }}
+              style={{
+                fontSize: '12px',
+                color: 'var(--mantine-color-dimmed)',
+                marginTop: '2px',
+              }}
             >
               {o.key.replace(`/${getFileName(o.key)}`, '') || '/'}
             </div>

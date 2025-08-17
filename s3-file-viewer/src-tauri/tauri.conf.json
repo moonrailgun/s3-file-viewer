@@ -13,8 +13,12 @@
     "windows": [
       {
         "title": "s3-file-viewer",
-        "width": 800,
-        "height": 600
+        "width": 1280,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600,
+        "center": true,
+        "resizable": true
       }
     ],
     "security": {

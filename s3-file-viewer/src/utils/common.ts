@@ -15,7 +15,7 @@ export function isImageKey(key: string) {
 export function getFileType(
   key: string
 ): 'image' | 'document' | 'video' | 'audio' | 'archive' | 'code' | 'other' {
-  const ext = key.toLowerCase().split('.').pop() || '';
+  // const ext = key.toLowerCase().split('.').pop() || '';
 
   // Image files
   if (/\.(png|jpe?g|gif|webp|bmp|svg|avif|heic|heif)$/i.test(key)) {

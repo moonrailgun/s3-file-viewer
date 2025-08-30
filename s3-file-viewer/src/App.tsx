@@ -223,7 +223,7 @@ function App() {
                 />
               ) : (
                 <>
-                  <Group justify="center" align="normal" gap={2}>
+                  <Group justify="start" align="normal" gap={2}>
                     {objects.map((o) => (
                       <ObjectThumb
                         key={o.key}

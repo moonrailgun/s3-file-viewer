@@ -1,1 +1,15 @@
 @import "tailwindcss";
+
+/* Connection list item styles */
+.connection-item {
+  cursor: pointer;
+  user-select: none;
+}
+
+.connection-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* .connection-item.selected {
+  box-shadow: 0 0 0 2px var(--mantine-primary-color-filled);
+} */

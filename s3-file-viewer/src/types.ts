@@ -7,6 +7,13 @@ export type ConnectionParams = {
   region: string;
 };
 
+export type SavedConnection = ConnectionParams & {
+  id: string;
+  name: string;
+  created_at: string;
+  last_used?: string;
+};
+
 export type S3ObjectInfo = {
   key: string;
   size: number;

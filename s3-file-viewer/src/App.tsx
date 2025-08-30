@@ -36,6 +36,7 @@ function App() {
     setBucket,
     setPrefix,
     doConnect,
+    doDisconnect,
     ensureObjectUrl,
     fetchObjects,
     deleteObject,
@@ -144,6 +145,7 @@ function App() {
         view={view}
         onChangeView={setView}
         onRefresh={fetchObjects}
+        onDisconnect={doDisconnect}
         loading={loading}
       />
 

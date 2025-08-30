@@ -8,7 +8,7 @@ import {
   SegmentedControl,
   ActionIcon,
 } from '@mantine/core';
-import { IconRefresh } from '@tabler/icons-react';
+import { IconRefresh, IconLogout } from '@tabler/icons-react';
 import { BucketInfo } from '../types';
 
 export type HeaderBarProps = {
@@ -19,6 +19,7 @@ export type HeaderBarProps = {
   view: string;
   onChangeView: (v: string) => void;
   onRefresh: () => void;
+  onDisconnect: () => void;
   loading: boolean;
 };
 
@@ -30,6 +31,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   view,
   onChangeView,
   onRefresh,
+  onDisconnect,
   loading,
 }) => {
   return (
@@ -51,19 +53,24 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
               />
             )}
           </Group>
-          <Group>
-            <SegmentedControl
-              value={view}
-              onChange={onChangeView}
-              data={[
-                { label: 'List', value: 'list' },
-                { label: 'Thumbs', value: 'thumb' },
-              ]}
-            />
-            <ActionIcon variant="light" onClick={onRefresh} disabled={loading}>
-              <IconRefresh size={18} />
-            </ActionIcon>
-          </Group>
+          {connected && (
+            <Group>
+              <SegmentedControl
+                value={view}
+                onChange={onChangeView}
+                data={[
+                  { label: 'List', value: 'list' },
+                  { label: 'Thumbs', value: 'thumb' },
+                ]}
+              />
+              <ActionIcon variant="light" onClick={onRefresh} disabled={loading}>
+                <IconRefresh size={18} />
+              </ActionIcon>
+              <ActionIcon variant="light" color="red" onClick={onDisconnect}>
+                <IconLogout size={18} />
+              </ActionIcon>
+            </Group>
+          )}
         </Group>
       </Container>
     </AppShell.Header>

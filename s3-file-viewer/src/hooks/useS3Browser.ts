@@ -3,6 +3,7 @@ import { useLocalStorageState } from 'ahooks';
 import { invoke } from '@tauri-apps/api/core';
 import { notifications } from '@mantine/notifications';
 import { BucketInfo, ConnectionParams, S3ObjectInfo } from '../types';
+import { updateConnectionLastUsed } from '../utils/connectionManager';
 
 // Core stateful logic for S3 browsing
 export function useS3Browser() {
@@ -42,6 +43,10 @@ export function useS3Browser() {
       await invoke('connect', { params });
       setConnected(true);
       setShowConnect(false);
+
+      // Update last used time for the connection
+      updateConnectionLastUsed(params);
+
       notifications.show({
         message: 'Connected to S3 successfully',
         color: 'green',
@@ -52,6 +57,21 @@ export function useS3Browser() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function doDisconnect() {
+    setConnected(false);
+    setShowConnect(true);
+    setBuckets([]);
+    setObjects([]);
+    setBucket(null);
+    setPrefix('');
+    urlCacheRef.current.clear();
+    
+    notifications.show({
+      message: 'Disconnected from S3',
+      color: 'blue',
+    });
   }
 
   async function ensureObjectUrl(key: string) {
@@ -162,6 +182,7 @@ export function useS3Browser() {
     setPrefix,
     // actions
     doConnect,
+    doDisconnect,
     ensureObjectUrl,
     fetchBuckets,
     fetchObjects,

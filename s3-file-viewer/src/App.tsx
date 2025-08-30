@@ -67,6 +67,11 @@ function App() {
     return items;
   }, [prefix]);
 
+  function handleSelectBucket(bucketName: string | null) {
+    setBucket(bucketName);
+    setPrefix(''); // 重置路径为根目录
+  }
+
   async function copyObjectUrl(key: string) {
     try {
       const url = await ensureObjectUrl(key);
@@ -141,7 +146,7 @@ function App() {
         connected={connected}
         buckets={buckets}
         bucket={bucket}
-        onSelectBucket={setBucket}
+        onSelectBucket={handleSelectBucket}
         view={view}
         onChangeView={setView}
         onRefresh={fetchObjects}

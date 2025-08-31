@@ -66,6 +66,10 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
         cursor: obj.is_dir ? 'pointer' : 'default',
         background: 'var(--mantine-color-body)',
         transition: 'all 0.2s ease',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        MozUserSelect: 'none',
+        msUserSelect: 'none',
         '&:hover': {
           transform: 'translateY(-2px)',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
@@ -73,7 +77,14 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
         },
       }}
       onClick={() => {
-        if (obj.is_dir) onEnterDir(obj.key);
+        if (obj.is_dir) {
+          onEnterDir(obj.key);
+        }
+      }}
+      onDoubleClick={() => {
+        if (!obj.is_dir) {
+          onPreviewExternal(obj.key);
+        }
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translateY(-2px)';

@@ -23,8 +23,15 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
   const rows = objects.map((o) => (
     <Table.Tr
       key={o.key}
-      style={{ cursor: o.is_dir ? 'pointer' : 'default' }}
+      style={{ 
+        cursor: o.is_dir ? 'pointer' : 'default',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        MozUserSelect: 'none',
+        msUserSelect: 'none'
+      }}
       onClick={() => (o.is_dir ? onEnterDir(o.key) : undefined)}
+      onDoubleClick={() => (!o.is_dir ? onPreviewExternal(o.key) : undefined)}
     >
       <Table.Td style={{ width: '24px' }}>
         {getFileIconWithProps(o.key, o.is_dir, {

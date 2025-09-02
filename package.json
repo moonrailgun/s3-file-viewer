@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "release": "release-it",
+    "release:patch": "release-it -i patch",
     "tauri": "tauri"
   },
   "dependencies": {
@@ -31,11 +33,13 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@release-it/conventional-changelog": "^10.0.1",
     "@tauri-apps/cli": "^2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
     "prettier-plugin-tailwindcss": "^0.6.14",
+    "release-it": "^19.0.4",
     "typescript": "~5.8.3",
     "vite": "^7.0.4"
   }

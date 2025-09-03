@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.1.2](https://github.com/moonrailgun/s3-file-viewer/compare/v0.1.1...v0.1.2) (2025-09-03)
+
 ## 0.1.1 (2025-09-03)
 
 ### Features

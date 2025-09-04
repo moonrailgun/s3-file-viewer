@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.3](https://github.com/moonrailgun/s3-file-viewer/compare/v0.1.2...v0.1.3) (2025-09-04)
+
+### Others
+
+* add Bun setup step to GitHub Actions workflow ([7727022](https://github.com/moonrailgun/s3-file-viewer/commit/7727022a24381fe51d799d10211153ad969eebc2))
+
 ## [0.1.2](https://github.com/moonrailgun/s3-file-viewer/compare/v0.1.1...v0.1.2) (2025-09-03)
 
 ## 0.1.1 (2025-09-03)

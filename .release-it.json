@@ -11,6 +11,9 @@
     "publish": false
   },
   "hooks": {
+    "before:bump": [
+      "jq '.version = \"${version}\"' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp && mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json"
+    ],
     "after:bump": "echo Version Upgrade Success. checkout more in CHANGELOG"
   },
   "plugins": {

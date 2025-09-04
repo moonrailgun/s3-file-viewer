@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/moonrailgun/s3-file-viewer/compare/v0.1.4...v0.1.5) (2025-09-04)
+
+### Others
+
+* add before:bump hook to update version in tauri.conf.json ([2f9014b](https://github.com/moonrailgun/s3-file-viewer/commit/2f9014bd09afe7b34c9447a4e3200236477fb43b))
+* update release name format and set releaseDraft to false in GitHub Actions workflow ([d0c1c72](https://github.com/moonrailgun/s3-file-viewer/commit/d0c1c72b741a672e37588650e8118f7287030ae4))
+
 ## [0.1.4](https://github.com/moonrailgun/s3-file-viewer/compare/v0.1.3...v0.1.4) (2025-09-04)
 
 ### Others

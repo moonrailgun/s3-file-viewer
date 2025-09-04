@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.4](https://github.com/moonrailgun/s3-file-viewer/compare/v0.1.3...v0.1.4) (2025-09-04)
+
+### Others
+
+* disable GitHub release in release-it configuration ([ae00581](https://github.com/moonrailgun/s3-file-viewer/commit/ae00581eb809d10ffb4247f534d1ce30579313ef))
+
 ## [0.1.3](https://github.com/moonrailgun/s3-file-viewer/compare/v0.1.2...v0.1.3) (2025-09-04)
 
 ### Others

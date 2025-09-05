@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.6](https://github.com/moonrailgun/s3-file-viewer/compare/v0.1.5...v0.1.6) (2025-09-05)
+
+### Others
+
+* update release body in GitHub Actions workflow to include detailed download instructions for Windows, macOS, and Linux ([61408a4](https://github.com/moonrailgun/s3-file-viewer/commit/61408a4c4905e057be98365aedaa616e66935bb3))
+
 ## [0.1.5](https://github.com/moonrailgun/s3-file-viewer/compare/v0.1.4...v0.1.5) (2025-09-04)
 
 ### Others

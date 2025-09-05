@@ -63,7 +63,31 @@ jobs:
         with:
           tagName: app-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
           releaseName: "v__VERSION__"
-          releaseBody: "See the assets to download this version and install."
+          releaseBody: |
+            ## 📥 Download Instructions
+
+            Choose the appropriate file for your operating system:
+
+            ### Windows
+            - **`.exe`** - Windows installer (recommended for most users)
+            - **`.msi`** - Windows MSI package (for enterprise deployment)
+
+            ### macOS  
+            - **`_aarch64.dmg`** - For Apple Silicon Macs (M1/M2/M3)
+            - **`_x64.dmg`** - For Intel-based Macs
+            - **`.app.tar.gz`** - Portable app bundle (extract and run)
+
+            ### Linux
+            - **`.AppImage`** - Universal Linux binary (make executable and run)
+            - **`.deb`** - For Debian/Ubuntu systems (`sudo dpkg -i filename.deb`)
+            - **`.rpm`** - For Red Hat/Fedora/SUSE systems (`sudo rpm -i filename.rpm`)
+
+            ---
+            
+            💡 **Not sure which version to choose?**
+            - **Windows**: Download the `.exe` file
+            - **macOS**: Download `_aarch64.dmg` for newer Macs or `_x64.dmg` for older Intel Macs
+            - **Linux**: Try the `.AppImage` for maximum compatibility
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

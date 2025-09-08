@@ -19,6 +19,7 @@ import { Toolbar } from './components/Toolbar';
 import { ObjectListTable } from './components/ObjectListTable';
 import { ObjectThumb } from './components/ObjectThumb';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
+import { UploadProgressList } from './components/UploadProgressBar';
 import { notifications } from '@mantine/notifications';
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
     connSafe,
     bucket,
     prefix,
+    uploadProgress,
     setView,
     setConn,
     setBucket,
@@ -52,6 +54,11 @@ function App() {
   const [deleteModalOpened, setDeleteModalOpened] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [deletingFile, setDeletingFile] = useState(false);
+
+  // Upload progress with file names
+  const [uploadFileNames, setUploadFileNames] = useState<Map<string, string>>(
+    new Map()
+  );
 
   const breadcrumbItems = useMemo(() => {
     const parts = (prefix || '').replace(/\/+$/, '').split('/').filter(Boolean);
@@ -224,7 +231,10 @@ function App() {
                 }}
                 onUpload={async (file) => {
                   try {
-                    await uploadFile(file);
+                    const uploadId = await uploadFile(file);
+                    setUploadFileNames(
+                      (prev) => new Map([...prev, [uploadId, file.name]])
+                    );
                     notifications.show({
                       message: `Uploaded: ${file.name}`,
                       color: 'green',
@@ -303,6 +313,21 @@ function App() {
         onConfirm={handleDeleteConfirm}
         fileName={fileToDelete || ''}
         loading={deletingFile}
+      />
+
+      {/* Upload Progress Display */}
+      <UploadProgressList
+        uploads={
+          new Map(
+            Array.from(uploadProgress.entries()).map(([uploadId, progress]) => [
+              uploadId,
+              {
+                ...progress,
+                fileName: uploadFileNames.get(uploadId) || 'Unknown file',
+              },
+            ])
+          )
+        }
       />
     </AppShell>
   );

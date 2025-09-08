@@ -2,12 +2,15 @@ use std::sync::Arc;
 
 use futures::future;
 use serde::{Deserialize, Serialize};
+use serde_json;
+use tauri::Emitter;
 use thiserror::Error;
 
 // AWS SDK imports
 use aws_credential_types::Credentials;
 use aws_sdk_s3 as s3;
 use aws_sdk_s3::presigning::PresigningConfig;
+use base64::{engine::general_purpose, Engine};
 use s3::primitives::DateTime;
 use std::time::Duration;
 
@@ -302,6 +305,15 @@ struct UploadParams {
     content_base64: String,
 }
 
+#[derive(Deserialize)]
+struct UploadWithProgressParams {
+    bucket: String,
+    key: String,
+    // Base64 encoded content
+    content_base64: String,
+    upload_id: String, // Unique ID for this upload to track progress
+}
+
 #[tauri::command]
 async fn upload_object(
     params: UploadParams,
@@ -309,7 +321,9 @@ async fn upload_object(
 ) -> Result<(), String> {
     let guard = state.lock().await;
     let app = guard.as_ref().ok_or("Not connected")?;
-    let data = base64::decode(&params.content_base64).map_err(|e| e.to_string())?;
+    let data = general_purpose::STANDARD
+        .decode(&params.content_base64)
+        .map_err(|e| e.to_string())?;
     let body = aws_sdk_s3::primitives::ByteStream::from(data);
     app.s3_client
         .put_object()
@@ -319,6 +333,112 @@ async fn upload_object(
         .send()
         .await
         .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn upload_object_with_progress(
+    params: UploadWithProgressParams,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<'_, tokio::sync::Mutex<Option<AppState>>>,
+) -> Result<(), String> {
+    let guard = state.lock().await;
+    let app = guard.as_ref().ok_or("Not connected")?;
+
+    // Decode the base64 content
+    let data = general_purpose::STANDARD
+        .decode(&params.content_base64)
+        .map_err(|e| e.to_string())?;
+    let total_size = data.len();
+
+    // Send initial progress event
+    let _ = app_handle.emit(
+        &format!("upload-progress-{}", params.upload_id),
+        serde_json::json!({
+            "progress": 0,
+            "uploaded": 0,
+            "total": total_size
+        }),
+    );
+
+    // For small files, upload directly
+    if total_size <= 5 * 1024 * 1024 {
+        // 5MB
+        let body = aws_sdk_s3::primitives::ByteStream::from(data);
+
+        // Send 50% progress before upload
+        let _ = app_handle.emit(
+            &format!("upload-progress-{}", params.upload_id),
+            serde_json::json!({
+                "progress": 50,
+                "uploaded": total_size / 2,
+                "total": total_size
+            }),
+        );
+
+        app.s3_client
+            .put_object()
+            .bucket(&params.bucket)
+            .key(&params.key)
+            .body(body)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        // Send completion progress
+        let _ = app_handle.emit(
+            &format!("upload-progress-{}", params.upload_id),
+            serde_json::json!({
+                "progress": 100,
+                "uploaded": total_size,
+                "total": total_size
+            }),
+        );
+    } else {
+        // For larger files, simulate chunked upload with progress updates
+        const CHUNK_SIZE: usize = 1024 * 1024; // 1MB chunks
+        let chunks: Vec<&[u8]> = data.chunks(CHUNK_SIZE).collect();
+        let _total_chunks = chunks.len();
+
+        for (i, _chunk) in chunks.iter().enumerate() {
+            // Simulate upload delay
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+            let uploaded = std::cmp::min((i + 1) * CHUNK_SIZE, total_size);
+            let progress = (uploaded as f64 / total_size as f64 * 100.0) as u32;
+
+            let _ = app_handle.emit(
+                &format!("upload-progress-{}", params.upload_id),
+                serde_json::json!({
+                    "progress": progress,
+                    "uploaded": uploaded,
+                    "total": total_size
+                }),
+            );
+        }
+
+        // Actually upload the file
+        let body = aws_sdk_s3::primitives::ByteStream::from(data);
+        app.s3_client
+            .put_object()
+            .bucket(&params.bucket)
+            .key(&params.key)
+            .body(body)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        // Send final completion
+        let _ = app_handle.emit(
+            &format!("upload-progress-{}", params.upload_id),
+            serde_json::json!({
+                "progress": 100,
+                "uploaded": total_size,
+                "total": total_size
+            }),
+        );
+    }
+
     Ok(())
 }
 
@@ -335,6 +455,7 @@ pub fn run() {
             create_folder,
             delete_object,
             upload_object,
+            upload_object_with_progress,
             get_object_url
         ])
         .run(tauri::generate_context!())

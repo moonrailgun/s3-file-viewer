@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocalStorageState } from 'ahooks';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { notifications } from '@mantine/notifications';
 import { BucketInfo, ConnectionParams, S3ObjectInfo } from '../types';
 import { updateConnectionLastUsed } from '../utils/connectionManager';
+
+// Upload progress interface
+interface UploadProgress {
+  progress: number;
+  uploaded: number;
+  total: number;
+}
 
 // Core stateful logic for S3 browsing
 export function useS3Browser() {
@@ -12,6 +20,12 @@ export function useS3Browser() {
   const [buckets, setBuckets] = useState<BucketInfo[]>([]);
   const [objects, setObjects] = useState<S3ObjectInfo[]>([]);
   const urlCacheRef = useRef<Map<string, string>>(new Map());
+
+  // Upload progress state
+  const [uploadProgress, setUploadProgress] = useState<
+    Map<string, UploadProgress>
+  >(new Map());
+  const [activeUploads, setActiveUploads] = useState<Set<string>>(new Set());
 
   const [view, setView] = useLocalStorageState<string>('s3fv:view', {
     defaultValue: 'list',
@@ -67,7 +81,7 @@ export function useS3Browser() {
     setBucket(null);
     setPrefix('');
     urlCacheRef.current.clear();
-    
+
     notifications.show({
       message: 'Disconnected from S3',
       color: 'blue',
@@ -143,8 +157,12 @@ export function useS3Browser() {
     await invoke('create_folder', { bucket, folderKey: key });
   }
 
-  async function uploadFile(file: File) {
-    if (!bucket) return;
+  async function uploadFile(file: File): Promise<string> {
+    if (!bucket) throw new Error('No bucket selected');
+
+    // Generate unique upload ID
+    const uploadId = `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
     const arr = new Uint8Array(await file.arrayBuffer());
     let binary = '';
     arr.forEach((b) => (binary += String.fromCharCode(b)));
@@ -152,9 +170,59 @@ export function useS3Browser() {
     const key = prefix
       ? `${prefix.replace(/\/?$/, '/')}${file.name}`
       : file.name;
-    await invoke('upload_object', {
-      params: { bucket, key, content_base64: b64 },
+
+    // Add to active uploads
+    setActiveUploads((prev) => new Set([...prev, uploadId]));
+    setUploadProgress(
+      (prev) =>
+        new Map([
+          ...prev,
+          [uploadId, { progress: 0, uploaded: 0, total: file.size }],
+        ])
+    );
+
+    // Set up progress listener
+    const unlisten = await listen(`upload-progress-${uploadId}`, (event) => {
+      const progress = event.payload as UploadProgress;
+      setUploadProgress((prev) => new Map([...prev, [uploadId, progress]]));
     });
+
+    try {
+      await invoke('upload_object_with_progress', {
+        params: { bucket, key, content_base64: b64, upload_id: uploadId },
+      });
+
+      // Clean up
+      setTimeout(() => {
+        setActiveUploads((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(uploadId);
+          return newSet;
+        });
+        setUploadProgress((prev) => {
+          const newMap = new Map(prev);
+          newMap.delete(uploadId);
+          return newMap;
+        });
+      }, 2000); // Keep progress visible for 2 seconds after completion
+
+      return uploadId;
+    } catch (error) {
+      // Clean up on error
+      setActiveUploads((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(uploadId);
+        return newSet;
+      });
+      setUploadProgress((prev) => {
+        const newMap = new Map(prev);
+        newMap.delete(uploadId);
+        return newMap;
+      });
+      throw error;
+    } finally {
+      unlisten();
+    }
   }
 
   useEffect(() => {
@@ -174,6 +242,8 @@ export function useS3Browser() {
     connSafe,
     bucket,
     prefix,
+    uploadProgress,
+    activeUploads,
     // setters
     setView,
     setShowConnect,

@@ -25,7 +25,8 @@
       "csp": null,
       "capabilities": [
         "clipboard-cap",
-        "webview-cap"
+        "webview-cap",
+        "event-cap"
       ]
     }
   },

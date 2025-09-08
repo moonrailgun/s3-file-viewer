@@ -71,8 +71,10 @@ function App() {
     let acc = '';
     parts.forEach((part) => {
       acc = acc ? `${acc}/${part}` : part;
+      const target = `${acc}/`;
+
       items.push(
-        <Anchor key={acc} onClick={() => setPrefix(`${acc}/`)}>
+        <Anchor key={acc} onClick={() => setPrefix(target)}>
           {part}
         </Anchor>
       );

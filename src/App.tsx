@@ -18,6 +18,7 @@ import { ConnectForm } from './components/ConnectForm';
 import { Toolbar } from './components/Toolbar';
 import { ObjectListTable } from './components/ObjectListTable';
 import { ObjectThumb } from './components/ObjectThumb';
+import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { notifications } from '@mantine/notifications';
 
 function App() {
@@ -46,6 +47,11 @@ function App() {
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState<string>('');
+
+  // Delete confirmation state
+  const [deleteModalOpened, setDeleteModalOpened] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
+  const [deletingFile, setDeletingFile] = useState(false);
 
   const breadcrumbItems = useMemo(() => {
     const parts = (prefix || '').replace(/\/+$/, '').split('/').filter(Boolean);
@@ -140,6 +146,39 @@ function App() {
     }
   }
 
+  // Handle delete confirmation
+  function handleDeleteRequest(key: string) {
+    setFileToDelete(key);
+    setDeleteModalOpened(true);
+  }
+
+  function handleDeleteCancel() {
+    setDeleteModalOpened(false);
+    setFileToDelete(null);
+    setDeletingFile(false);
+  }
+
+  async function handleDeleteConfirm() {
+    if (!fileToDelete) return;
+
+    try {
+      setDeletingFile(true);
+      await deleteObject(fileToDelete);
+      notifications.show({
+        message: `Deleted ${fileToDelete}`,
+        color: 'green',
+      });
+      fetchObjects();
+      handleDeleteCancel();
+    } catch (err: any) {
+      notifications.show({
+        message: `Delete failed: ${err}`,
+        color: 'red',
+      });
+      setDeletingFile(false);
+    }
+  }
+
   return (
     <AppShell header={{ height: 64 }} padding="md">
       <HeaderBar
@@ -208,21 +247,7 @@ function App() {
                 <ObjectListTable
                   objects={objects}
                   onEnterDir={(k) => setPrefix(k)}
-                  onDelete={async (k) => {
-                    try {
-                      await deleteObject(k);
-                      notifications.show({
-                        message: `Deleted ${k}`,
-                        color: 'green',
-                      });
-                      fetchObjects();
-                    } catch (err: any) {
-                      notifications.show({
-                        message: `Delete failed: ${err}`,
-                        color: 'red',
-                      });
-                    }
-                  }}
+                  onDelete={handleDeleteRequest}
                   onCopyUrl={copyObjectUrl}
                   onPreviewExternal={previewInNewWindow}
                 />
@@ -238,21 +263,7 @@ function App() {
                           setPreviewTitle(k);
                           setPreviewUrl(url);
                         }}
-                        onDelete={async (k) => {
-                          try {
-                            await deleteObject(k);
-                            notifications.show({
-                              message: `Deleted ${k}`,
-                              color: 'green',
-                            });
-                            fetchObjects();
-                          } catch (err: any) {
-                            notifications.show({
-                              message: `Delete failed: ${err}`,
-                              color: 'red',
-                            });
-                          }
-                        }}
+                        onDelete={handleDeleteRequest}
                         onEnterDir={(k) => setPrefix(k)}
                         onCopyUrl={copyObjectUrl}
                         onPreviewExternal={previewInNewWindow}
@@ -284,6 +295,15 @@ function App() {
           )}
         </Container>
       </AppShell.Main>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        opened={deleteModalOpened}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        fileName={fileToDelete || ''}
+        loading={deletingFile}
+      />
     </AppShell>
   );
 }

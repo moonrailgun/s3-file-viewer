@@ -8,7 +8,7 @@ import { getFileIconWithProps } from '../utils/icons';
 export type ObjectListTableProps = {
   objects: S3ObjectInfo[];
   onEnterDir: (key: string) => void;
-  onDelete: (key: string) => Promise<void> | void;
+  onDelete: (key: string) => void;
   onCopyUrl: (key: string) => void | Promise<void>;
   onPreviewExternal: (key: string) => void | Promise<void>;
 };
@@ -23,12 +23,12 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
   const rows = objects.map((o) => (
     <Table.Tr
       key={o.key}
-      style={{ 
+      style={{
         cursor: o.is_dir ? 'pointer' : 'default',
         userSelect: 'none',
         WebkitUserSelect: 'none',
         MozUserSelect: 'none',
-        msUserSelect: 'none'
+        msUserSelect: 'none',
       }}
       onClick={() => (o.is_dir ? onEnterDir(o.key) : undefined)}
       onDoubleClick={() => (!o.is_dir ? onPreviewExternal(o.key) : undefined)}
@@ -99,9 +99,9 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
               variant="light"
               color="red"
               size="sm"
-              onClick={async (e) => {
+              onClick={(e) => {
                 e.stopPropagation();
-                await onDelete(o.key);
+                onDelete(o.key);
               }}
               title="Delete"
               style={{ transition: 'all 0.2s ease' }}

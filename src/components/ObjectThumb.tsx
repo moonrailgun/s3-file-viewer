@@ -15,7 +15,7 @@ export type ObjectThumbProps = {
   obj: S3ObjectInfo;
   ensureObjectUrl: (key: string) => Promise<string | undefined>;
   onPreview: (key: string, url: string) => void;
-  onDelete: (key: string) => Promise<void> | void;
+  onDelete: (key: string) => void;
   onEnterDir: (key: string) => void;
   onCopyUrl: (key: string) => void | Promise<void>;
   onPreviewExternal: (key: string) => void | Promise<void>;
@@ -191,9 +191,9 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
             variant="light"
             color="red"
             size="sm"
-            onClick={async (e) => {
+            onClick={(e) => {
               e.stopPropagation();
-              await onDelete(obj.key);
+              onDelete(obj.key);
             }}
             title="Delete"
           >

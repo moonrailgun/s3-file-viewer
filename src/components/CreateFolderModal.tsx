@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, TextInput, Button, Group, Stack, Text } from '@mantine/core';
-import { IconFolder, IconFolderPlus } from '@tabler/icons-react';
+import { IconFolderPlus } from '@tabler/icons-react';
 
 interface CreateFolderModalProps {
   opened: boolean;

@@ -14,11 +14,7 @@ import {
   Box,
   Loader,
 } from '@mantine/core';
-import {
-  IconTrash,
-  IconServer,
-  IconClock,
-} from '@tabler/icons-react';
+import { IconTrash, IconServer, IconClock } from '@tabler/icons-react';
 import { ConnectionParams, SavedConnection } from '../types';
 import {
   loadSavedConnections,
@@ -94,16 +90,24 @@ export const ConnectForm: React.FC<ConnectFormProps> = ({
 
   // Format last used time
   const formatLastUsed = (lastUsed?: string) => {
-    if (!lastUsed) return '从未使用';
+    if (!lastUsed) {
+      return 'Never used';
+    }
     const date = new Date(lastUsed);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) return '今天';
-    if (diffDays === 1) return '昨天';
-    if (diffDays < 7) return `${diffDays}天前`;
-    return date.toLocaleDateString('zh-CN');
+    if (diffDays === 0) {
+      return 'Today';
+    }
+    if (diffDays === 1) {
+      return 'Yesterday';
+    }
+    if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    }
+    return date.toLocaleDateString('en-US');
   };
 
   return (
@@ -115,10 +119,10 @@ export const ConnectForm: React.FC<ConnectFormProps> = ({
         <Card withBorder radius="md" p="md">
           <Group justify="space-between" align="center" mb="sm">
             <Text size="sm" fw={500}>
-              保存的连接
+              Saved Connections
             </Text>
             <Text size="xs" c="dimmed">
-              单击直接连接
+              Click to connect
             </Text>
           </Group>
 

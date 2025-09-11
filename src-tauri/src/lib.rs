@@ -303,6 +303,7 @@ struct UploadParams {
     key: String,
     // Base64 encoded content
     content_base64: String,
+    content_type: Option<String>, // MIME type of the content
 }
 
 #[derive(Deserialize)]
@@ -311,7 +312,8 @@ struct UploadWithProgressParams {
     key: String,
     // Base64 encoded content
     content_base64: String,
-    upload_id: String, // Unique ID for this upload to track progress
+    upload_id: String,            // Unique ID for this upload to track progress
+    content_type: Option<String>, // MIME type of the content
 }
 
 #[tauri::command]
@@ -325,14 +327,20 @@ async fn upload_object(
         .decode(&params.content_base64)
         .map_err(|e| e.to_string())?;
     let body = aws_sdk_s3::primitives::ByteStream::from(data);
-    app.s3_client
+
+    let mut put_request = app
+        .s3_client
         .put_object()
         .bucket(params.bucket)
         .key(params.key)
-        .body(body)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
+        .body(body);
+
+    // Set content type if provided
+    if let Some(content_type) = &params.content_type {
+        put_request = put_request.content_type(content_type);
+    }
+
+    put_request.send().await.map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -376,14 +384,19 @@ async fn upload_object_with_progress(
             }),
         );
 
-        app.s3_client
+        let mut put_request = app
+            .s3_client
             .put_object()
             .bucket(&params.bucket)
             .key(&params.key)
-            .body(body)
-            .send()
-            .await
-            .map_err(|e| e.to_string())?;
+            .body(body);
+
+        // Set content type if provided
+        if let Some(content_type) = &params.content_type {
+            put_request = put_request.content_type(content_type);
+        }
+
+        put_request.send().await.map_err(|e| e.to_string())?;
 
         // Send completion progress
         let _ = app_handle.emit(
@@ -419,14 +432,19 @@ async fn upload_object_with_progress(
 
         // Actually upload the file
         let body = aws_sdk_s3::primitives::ByteStream::from(data);
-        app.s3_client
+        let mut put_request = app
+            .s3_client
             .put_object()
             .bucket(&params.bucket)
             .key(&params.key)
-            .body(body)
-            .send()
-            .await
-            .map_err(|e| e.to_string())?;
+            .body(body);
+
+        // Set content type if provided
+        if let Some(content_type) = &params.content_type {
+            put_request = put_request.content_type(content_type);
+        }
+
+        put_request.send().await.map_err(|e| e.to_string())?;
 
         // Send final completion
         let _ = app_handle.emit(

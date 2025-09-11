@@ -97,11 +97,13 @@ function App() {
       notifications.show({
         message: 'URL copied to clipboard',
         color: 'green',
+        position: 'bottom-right',
       });
     } catch (e) {
       notifications.show({
         message: `Copy failed: ${e instanceof Error ? e.message : 'Unknown error'}`,
         color: 'red',
+        position: 'bottom-right',
       });
     }
   }
@@ -139,6 +141,7 @@ function App() {
           notifications.show({
             message: `Preview window error: ${e.payload}`,
             color: 'red',
+            position: 'bottom-right',
           });
         });
       } catch (webviewError) {
@@ -151,6 +154,7 @@ function App() {
       notifications.show({
         message: `Preview failed: ${e instanceof Error ? e.message : 'Unknown error'}`,
         color: 'red',
+        position: 'bottom-right',
       });
     }
   }
@@ -176,6 +180,7 @@ function App() {
       notifications.show({
         message: `Deleted ${fileToDelete}`,
         color: 'green',
+        position: 'bottom-right',
       });
       fetchObjects();
       handleDeleteCancel();
@@ -183,6 +188,7 @@ function App() {
       notifications.show({
         message: `Delete failed: ${err}`,
         color: 'red',
+        position: 'bottom-right',
       });
       setDeletingFile(false);
     }
@@ -222,12 +228,14 @@ function App() {
                     notifications.show({
                       message: `Folder created: ${name}`,
                       color: 'green',
+                      position: 'bottom-right',
                     });
                     fetchObjects();
                   } catch (err: any) {
                     notifications.show({
                       message: `Create folder failed: ${err}`,
                       color: 'red',
+                      position: 'bottom-right',
                     });
                   }
                 }}
@@ -240,12 +248,14 @@ function App() {
                     notifications.show({
                       message: `Uploaded: ${file.name}`,
                       color: 'green',
+                      position: 'bottom-right',
                     });
                     fetchObjects();
                   } catch (err: any) {
                     notifications.show({
                       message: `Upload failed: ${err}`,
                       color: 'red',
+                      position: 'bottom-right',
                     });
                   }
                 }}

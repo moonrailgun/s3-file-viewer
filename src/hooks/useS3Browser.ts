@@ -5,6 +5,7 @@ import { listen } from '@tauri-apps/api/event';
 import { notifications } from '@mantine/notifications';
 import { BucketInfo, ConnectionParams, S3ObjectInfo } from '../types';
 import { updateConnectionLastUsed } from '../utils/connectionManager';
+import { inferMimeType } from '../utils/mimeTypes';
 
 // Upload progress interface
 interface UploadProgress {
@@ -64,10 +65,15 @@ export function useS3Browser() {
       notifications.show({
         message: 'Connected to S3 successfully',
         color: 'green',
+        position: 'bottom-right',
       });
       await fetchBuckets();
     } catch (err: any) {
-      notifications.show({ message: `Connect failed: ${err}`, color: 'red' });
+      notifications.show({
+        message: `Connect failed: ${err}`,
+        color: 'red',
+        position: 'bottom-right',
+      });
     } finally {
       setLoading(false);
     }
@@ -85,6 +91,7 @@ export function useS3Browser() {
     notifications.show({
       message: 'Disconnected from S3',
       color: 'blue',
+      position: 'bottom-right',
     });
   }
 
@@ -123,6 +130,7 @@ export function useS3Browser() {
       notifications.show({
         message: `List buckets failed: ${err}`,
         color: 'red',
+        position: 'bottom-right',
       });
     }
   }
@@ -140,6 +148,7 @@ export function useS3Browser() {
       notifications.show({
         message: `List objects failed: ${err}`,
         color: 'red',
+        position: 'bottom-right',
       });
     } finally {
       setLoading(false);
@@ -162,6 +171,9 @@ export function useS3Browser() {
 
     // Generate unique upload ID
     const uploadId = `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Infer MIME type for the file
+    const mimeType = inferMimeType(file);
 
     const arr = new Uint8Array(await file.arrayBuffer());
     let binary = '';
@@ -189,7 +201,13 @@ export function useS3Browser() {
 
     try {
       await invoke('upload_object_with_progress', {
-        params: { bucket, key, content_base64: b64, upload_id: uploadId },
+        params: {
+          bucket,
+          key,
+          content_base64: b64,
+          upload_id: uploadId,
+          content_type: mimeType,
+        },
       });
 
       // Clean up

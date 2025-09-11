@@ -4,7 +4,10 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { notifications } from '@mantine/notifications';
 import { BucketInfo, ConnectionParams, S3ObjectInfo } from '../types';
-import { updateConnectionLastUsed } from '../utils/connectionManager';
+import {
+  updateConnectionLastUsed,
+  saveConnection,
+} from '../utils/connectionManager';
 import { inferMimeType } from '../utils/mimeTypes';
 
 // Upload progress interface
@@ -74,9 +77,15 @@ export function useS3Browser() {
         color: 'red',
         position: 'bottom-right',
       });
+      throw err; // Re-throw error so ConnectForm can handle it
     } finally {
       setLoading(false);
     }
+  }
+
+  // Save connection after successful connection
+  function handleConnectionSuccess(params: ConnectionParams) {
+    saveConnection(params);
   }
 
   function doDisconnect() {
@@ -271,6 +280,7 @@ export function useS3Browser() {
     // actions
     doConnect,
     doDisconnect,
+    handleConnectionSuccess,
     ensureObjectUrl,
     fetchBuckets,
     fetchObjects,

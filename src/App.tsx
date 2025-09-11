@@ -40,6 +40,7 @@ function App() {
     setPrefix,
     doConnect,
     doDisconnect,
+    handleConnectionSuccess,
     ensureObjectUrl,
     fetchObjects,
     deleteObject,
@@ -215,6 +216,7 @@ function App() {
               conn={connSafe}
               onChange={setConn}
               onSubmit={() => doConnect()}
+              onConnectionSuccess={handleConnectionSuccess}
               loading={loading}
             />
           ) : (

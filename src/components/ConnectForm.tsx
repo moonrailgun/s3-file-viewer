@@ -18,7 +18,6 @@ import { IconTrash, IconServer, IconClock } from '@tabler/icons-react';
 import { ConnectionParams, SavedConnection } from '../types';
 import {
   loadSavedConnections,
-  saveConnection,
   removeSavedConnection,
   toConnectionParams,
 } from '../utils/connectionManager';
@@ -26,7 +25,8 @@ import {
 export type ConnectFormProps = {
   conn: ConnectionParams;
   onChange: (next: ConnectionParams) => void;
-  onSubmit: () => void;
+  onSubmit: () => Promise<void>;
+  onConnectionSuccess?: (conn: ConnectionParams) => void; // Callback when connection succeeds
   loading: boolean;
 };
 
@@ -34,6 +34,7 @@ export const ConnectForm: React.FC<ConnectFormProps> = ({
   conn,
   onChange,
   onSubmit,
+  onConnectionSuccess,
   loading,
 }) => {
   const [savedConnections, setSavedConnections] = useState<SavedConnection[]>(
@@ -50,14 +51,22 @@ export const ConnectForm: React.FC<ConnectFormProps> = ({
   }, []);
 
   // Handle selecting and connecting to a saved connection
-  const handleSelectAndConnect = (savedConn: SavedConnection) => {
+  const handleSelectAndConnect = async (savedConn: SavedConnection) => {
     setSelectedConnectionId(savedConn.id);
     setConnectingId(savedConn.id);
-    onChange(toConnectionParams(savedConn));
+    const connParams = toConnectionParams(savedConn);
+    onChange(connParams);
+
     // Trigger connection immediately
-    setTimeout(() => {
-      onSubmit();
-    }, 100); // Small delay to ensure state is updated
+    try {
+      await onSubmit();
+      // Connection succeeded, save the connection (update last_used)
+      onConnectionSuccess?.(connParams);
+      setSavedConnections(loadSavedConnections());
+    } catch (error) {
+      // Connection failed, don't save anything
+      console.error('Connection failed:', error);
+    }
   };
 
   // Reset connecting state when loading changes
@@ -80,12 +89,17 @@ export const ConnectForm: React.FC<ConnectFormProps> = ({
     }
   };
 
-  // Handle form submission with auto-save
-  const handleSubmit = () => {
-    onSubmit();
-    // Auto-save connection on submit
-    saveConnection(conn);
-    setSavedConnections(loadSavedConnections());
+  // Handle form submission
+  const handleSubmit = async () => {
+    try {
+      await onSubmit();
+      // Connection succeeded, save the connection
+      onConnectionSuccess?.(conn);
+      setSavedConnections(loadSavedConnections());
+    } catch (error) {
+      // Connection failed, don't save anything
+      console.error('Connection failed:', error);
+    }
   };
 
   // Format last used time

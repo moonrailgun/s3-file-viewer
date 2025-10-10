@@ -14,11 +14,26 @@ use base64::{engine::general_purpose, Engine};
 use s3::primitives::DateTime;
 use std::time::Duration;
 
+// SSH tunnel imports
+use ssh2::Session;
+use std::net::TcpStream;
+use std::path::PathBuf;
+use tokio::net::TcpListener;
+// use tokio::io::{AsyncReadExt, AsyncWriteExt}; // Not needed for ssh2
+
+// SSH tunnel handle for cleanup
+#[derive(Debug)]
+struct SshTunnelHandle {
+    local_port: u16,
+    _handle: tokio::task::JoinHandle<()>,
+}
+
 // Shared state for S3 client and connection info
 #[derive(Clone)]
 struct AppState {
     s3_client: Arc<s3::Client>,
     bucket_cache: Arc<tokio::sync::RwLock<Vec<String>>>,
+    ssh_tunnel: Arc<tokio::sync::RwLock<Option<SshTunnelHandle>>>,
 }
 
 #[derive(Debug, Error)]
@@ -42,11 +57,27 @@ impl From<s3::error::SdkError<s3::operation::list_objects_v2::ListObjectsV2Error
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+struct SshTunnelConfig {
+    enabled: bool,
+    host: String,
+    port: u16,
+    username: String,
+    auth_method: String, // "password" or "key"
+    password: Option<String>,
+    private_key_path: Option<String>,
+    private_key_passphrase: Option<String>,
+    local_port: Option<u16>, // Auto-assigned if not specified
+    remote_host: String,     // Usually localhost or internal IP
+    remote_port: u16,        // Minio port, usually 9000
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct ConnectionParams {
     endpoint: String,
     access_key: String,
     secret_key: String,
     region: String,
+    ssh_tunnel: Option<SshTunnelConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,14 +94,266 @@ struct BucketInfo {
     region: String,
 }
 
+// SSH tunnel implementation using ssh2 (synchronous) in a blocking task
+async fn create_ssh_tunnel(config: &SshTunnelConfig) -> Result<SshTunnelHandle, String> {
+    println!(
+        "[SSH] Creating SSH tunnel to {}@{}:{}",
+        config.username, config.host, config.port
+    );
+
+    // Determine local port
+    let local_port = if let Some(port) = config.local_port {
+        port
+    } else {
+        // Find an available port
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .map_err(|e| format!("Failed to bind to local port: {}", e))?;
+        let addr = listener
+            .local_addr()
+            .map_err(|e| format!("Failed to get local address: {}", e))?;
+        drop(listener); // Close the temporary listener
+        addr.port()
+    };
+
+    println!("[SSH] Using local port: {}", local_port);
+
+    // Clone config values for the blocking task
+    let ssh_host = config.host.clone();
+    let ssh_port = config.port;
+    let ssh_username = config.username.clone();
+    let ssh_auth_method = config.auth_method.clone();
+    let ssh_password = config.password.clone();
+    let ssh_private_key_path = config.private_key_path.clone();
+    let ssh_private_key_passphrase = config.private_key_passphrase.clone();
+    let remote_host = config.remote_host.clone();
+    let remote_port = config.remote_port;
+
+    // Create local listener
+    let listener = TcpListener::bind(format!("127.0.0.1:{}", local_port))
+        .await
+        .map_err(|e| format!("Failed to bind to local port {}: {}", local_port, e))?;
+
+    println!("[SSH] Local listener created on port {}", local_port);
+
+    // Start tunnel task
+    let tunnel_handle = tokio::spawn(async move {
+        println!("[SSH] Starting tunnel loop");
+        loop {
+            match listener.accept().await {
+                Ok((local_stream, addr)) => {
+                    println!("[SSH] Accepted connection from {}", addr);
+
+                    // Clone values for this connection
+                    let ssh_host = ssh_host.clone();
+                    let ssh_username = ssh_username.clone();
+                    let ssh_auth_method = ssh_auth_method.clone();
+                    let ssh_password = ssh_password.clone();
+                    let ssh_private_key_path = ssh_private_key_path.clone();
+                    let ssh_private_key_passphrase = ssh_private_key_passphrase.clone();
+                    let remote_host_for_spawn = remote_host.clone();
+
+                    // Handle each connection in a separate task
+                    tokio::spawn(async move {
+                        // Use spawn_blocking for synchronous SSH operations
+                        let remote_host_for_print = remote_host_for_spawn.clone();
+                        let result = tokio::task::spawn_blocking(move || {
+                            // Connect to SSH server
+                            let tcp = TcpStream::connect((ssh_host.as_str(), ssh_port))
+                                .map_err(|e| format!("Failed to connect to SSH server: {}", e))?;
+                            let mut sess = Session::new()
+                                .map_err(|e| format!("Failed to create SSH session: {}", e))?;
+                            sess.set_tcp_stream(tcp);
+                            sess.handshake()
+                                .map_err(|e| format!("SSH handshake failed: {}", e))?;
+
+                            // Authenticate
+                            match ssh_auth_method.as_str() {
+                                "password" => {
+                                    let password = ssh_password.ok_or(
+                                        "Password is required for password authentication",
+                                    )?;
+                                    sess.userauth_password(&ssh_username, &password).map_err(
+                                        |e| format!("Password authentication failed: {}", e),
+                                    )?;
+                                }
+                                "key" => {
+                                    let key_path = ssh_private_key_path.ok_or(
+                                        "Private key path is required for key authentication",
+                                    )?;
+
+                                    if let Some(passphrase) = ssh_private_key_passphrase {
+                                        sess.userauth_pubkey_file(
+                                            &ssh_username,
+                                            None,
+                                            PathBuf::from(key_path).as_path(),
+                                            Some(&passphrase),
+                                        )
+                                        .map_err(|e| {
+                                            format!(
+                                                "Key authentication with passphrase failed: {}",
+                                                e
+                                            )
+                                        })?;
+                                    } else {
+                                        sess.userauth_pubkey_file(
+                                            &ssh_username,
+                                            None,
+                                            PathBuf::from(key_path).as_path(),
+                                            None,
+                                        )
+                                        .map_err(|e| format!("Key authentication failed: {}", e))?;
+                                    }
+                                }
+                                _ => return Err("Invalid authentication method".to_string()),
+                            };
+
+                            if !sess.authenticated() {
+                                return Err("SSH authentication failed".to_string());
+                            }
+
+                            println!("[SSH] SSH authentication successful");
+
+                            // Create a direct TCP/IP channel (port forwarding)
+                            let channel = sess
+                                .channel_direct_tcpip(&remote_host_for_spawn, remote_port, None)
+                                .map_err(|e| format!("Failed to create SSH channel: {}", e))?;
+
+                            Ok::<_, String>((sess, channel))
+                        })
+                        .await;
+
+                        match result {
+                            Ok(Ok((sess, mut channel))) => {
+                                println!(
+                                    "[SSH] Established tunnel to {}:{}",
+                                    remote_host_for_print, remote_port
+                                );
+
+                                // Convert tokio stream to std stream for ssh2
+                                let std_stream = local_stream.into_std().unwrap();
+
+                                // Handle the forwarding in a blocking task
+                                tokio::task::spawn_blocking(move || {
+                                    use std::io::{Read, Write};
+
+                                    // Set non-blocking mode for the channel
+                                    sess.set_blocking(false);
+
+                                    let mut local_stream = std_stream;
+                                    let mut buffer = vec![0u8; 8192];
+
+                                    loop {
+                                        // Try to read from local stream and write to SSH channel
+                                        match local_stream.read(&mut buffer) {
+                                            Ok(0) => {
+                                                println!("[SSH] Local stream closed");
+                                                break;
+                                            }
+                                            Ok(n) => {
+                                                if let Err(e) = channel.write_all(&buffer[..n]) {
+                                                    if e.kind() != std::io::ErrorKind::WouldBlock {
+                                                        eprintln!(
+                                                            "[SSH] Failed to write to channel: {}",
+                                                            e
+                                                        );
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            Err(e) => {
+                                                if e.kind() != std::io::ErrorKind::WouldBlock {
+                                                    eprintln!("[SSH] Failed to read from local stream: {}", e);
+                                                    break;
+                                                }
+                                            }
+                                        }
+
+                                        // Try to read from SSH channel and write to local stream
+                                        match channel.read(&mut buffer) {
+                                            Ok(0) => {
+                                                println!("[SSH] SSH channel closed");
+                                                break;
+                                            }
+                                            Ok(n) => {
+                                                if let Err(e) = local_stream.write_all(&buffer[..n])
+                                                {
+                                                    if e.kind() != std::io::ErrorKind::WouldBlock {
+                                                        eprintln!("[SSH] Failed to write to local stream: {}", e);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            Err(e) => {
+                                                if e.kind() != std::io::ErrorKind::WouldBlock {
+                                                    eprintln!(
+                                                        "[SSH] Failed to read from channel: {}",
+                                                        e
+                                                    );
+                                                    break;
+                                                }
+                                            }
+                                        }
+
+                                        // Small delay to prevent busy waiting
+                                        std::thread::sleep(std::time::Duration::from_millis(1));
+                                    }
+                                });
+                            }
+                            Ok(Err(e)) => {
+                                eprintln!("[SSH] Failed to establish SSH connection: {}", e);
+                            }
+                            Err(e) => {
+                                eprintln!("[SSH] Task failed: {}", e);
+                            }
+                        }
+                    });
+                }
+                Err(e) => {
+                    eprintln!("[SSH] Failed to accept connection: {}", e);
+                    break;
+                }
+            }
+        }
+    });
+
+    println!("[SSH] Tunnel created successfully on port {}", local_port);
+
+    Ok(SshTunnelHandle {
+        local_port,
+        _handle: tunnel_handle,
+    })
+}
+
 #[tauri::command]
 async fn connect(
     params: ConnectionParams,
     state: tauri::State<'_, tokio::sync::Mutex<Option<AppState>>>,
 ) -> Result<(), String> {
-    // Build AWS SDK config with custom endpoint/credentials
+    println!("[connect] Starting connection process");
+
+    // Handle SSH tunnel if configured
+    let ssh_tunnel_handle = if let Some(ssh_config) = &params.ssh_tunnel {
+        if ssh_config.enabled {
+            println!("[connect] SSH tunnel is enabled, creating tunnel...");
+            Some(create_ssh_tunnel(ssh_config).await?)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    // Determine the actual endpoint to use
+    let actual_endpoint = if let Some(tunnel) = &ssh_tunnel_handle {
+        // Use localhost with the tunnel port
+        format!("http://127.0.0.1:{}", tunnel.local_port)
+    } else {
+        params.endpoint.clone()
+    };
+
+    println!("[connect] Using endpoint: {}", actual_endpoint);
     println!("[connect] region: {}", params.region);
-    println!("[connect] endpoint: {}", params.endpoint);
     println!("[connect] access_key: {}", params.access_key);
     // Do not print secret_key for security
 
@@ -87,7 +370,7 @@ async fn connect(
     let conf = aws_sdk_s3::config::Builder::new()
         .region(region)
         .credentials_provider(credentials)
-        .endpoint_url(params.endpoint.clone())
+        .endpoint_url(actual_endpoint)
         .behavior_version(s3::config::BehaviorVersion::latest())
         .force_path_style(true)
         .build();
@@ -117,6 +400,7 @@ async fn connect(
     let app_state = AppState {
         s3_client: Arc::new(client),
         bucket_cache: Arc::new(tokio::sync::RwLock::new(Vec::new())),
+        ssh_tunnel: Arc::new(tokio::sync::RwLock::new(ssh_tunnel_handle)),
     };
 
     println!("[connect] AppState created, acquiring lock...");
@@ -465,6 +749,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(tokio::sync::Mutex::new(None::<AppState>))
         .invoke_handler(tauri::generate_handler![
             connect,

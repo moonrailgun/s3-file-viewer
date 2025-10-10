@@ -13,12 +13,18 @@ import {
   UnstyledButton,
   Box,
   Loader,
+  Checkbox,
+  Select,
+  Collapse,
+  NumberInput,
 } from '@mantine/core';
 import {
   IconTrash,
   IconServer,
   IconClock,
   IconEdit,
+  IconNetwork,
+  IconFolder,
 } from '@tabler/icons-react';
 import { ConnectionParams, SavedConnection } from '../types';
 import {
@@ -26,6 +32,7 @@ import {
   removeSavedConnection,
   toConnectionParams,
 } from '../utils/connectionManager';
+import { open } from '@tauri-apps/plugin-dialog';
 
 export type ConnectFormProps = {
   conn: ConnectionParams;
@@ -124,6 +131,38 @@ export const ConnectForm: React.FC<ConnectFormProps> = ({
     } catch (error) {
       // Connection failed, don't save anything
       console.error('Connection failed:', error);
+    }
+  };
+
+  // Handle file selection for private key
+  const handleSelectPrivateKeyFile = async () => {
+    try {
+      const selected = await open({
+        title: '选择私钥文件',
+        multiple: false,
+        filters: [
+          {
+            name: 'SSH Private Key',
+            extensions: ['pem', 'key', 'rsa', 'dsa', 'ecdsa', 'ed25519', ''],
+          },
+          {
+            name: 'All Files',
+            extensions: ['*'],
+          },
+        ],
+      });
+
+      if (selected && typeof selected === 'string') {
+        onChange({
+          ...conn,
+          ssh_tunnel: {
+            ...conn.ssh_tunnel!,
+            private_key_path: selected,
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Failed to select private key file:', error);
     }
   };
 
@@ -281,6 +320,207 @@ export const ConnectForm: React.FC<ConnectFormProps> = ({
         onChange={(e) => onChange({ ...conn, region: e.currentTarget.value })}
         placeholder="us-east-1"
       />
+
+      {/* SSH Tunnel Configuration */}
+      <Card withBorder radius="md" p="md">
+        <Group justify="space-between" align="center" mb="sm">
+          <Group gap="xs" align="center">
+            <IconNetwork size={16} />
+            <Text size="sm" fw={500}>
+              SSH隧道配置
+            </Text>
+          </Group>
+          <Checkbox
+            checked={conn.ssh_tunnel?.enabled || false}
+            onChange={(event) =>
+              onChange({
+                ...conn,
+                ssh_tunnel: {
+                  enabled: event.currentTarget.checked,
+                  host: conn.ssh_tunnel?.host || '',
+                  port: conn.ssh_tunnel?.port || 22,
+                  username: conn.ssh_tunnel?.username || '',
+                  auth_method: conn.ssh_tunnel?.auth_method || 'password',
+                  password: conn.ssh_tunnel?.password || '',
+                  private_key_path: conn.ssh_tunnel?.private_key_path || '',
+                  private_key_passphrase:
+                    conn.ssh_tunnel?.private_key_passphrase || '',
+                  remote_host: conn.ssh_tunnel?.remote_host || 'localhost',
+                  remote_port: conn.ssh_tunnel?.remote_port || 9000,
+                },
+              })
+            }
+            label="启用SSH隧道"
+          />
+        </Group>
+
+        <Collapse in={conn.ssh_tunnel?.enabled || false}>
+          <Stack gap="sm">
+            <Group grow>
+              <TextInput
+                label="SSH主机"
+                value={conn.ssh_tunnel?.host || ''}
+                onChange={(e) =>
+                  onChange({
+                    ...conn,
+                    ssh_tunnel: {
+                      ...conn.ssh_tunnel!,
+                      host: e.currentTarget.value,
+                    },
+                  })
+                }
+                placeholder="ssh.example.com"
+              />
+              <NumberInput
+                label="SSH端口"
+                value={conn.ssh_tunnel?.port || 22}
+                onChange={(value) =>
+                  onChange({
+                    ...conn,
+                    ssh_tunnel: {
+                      ...conn.ssh_tunnel!,
+                      port: typeof value === 'number' ? value : 22,
+                    },
+                  })
+                }
+                min={1}
+                max={65535}
+                placeholder="22"
+              />
+            </Group>
+
+            <TextInput
+              label="SSH用户名"
+              value={conn.ssh_tunnel?.username || ''}
+              onChange={(e) =>
+                onChange({
+                  ...conn,
+                  ssh_tunnel: {
+                    ...conn.ssh_tunnel!,
+                    username: e.currentTarget.value,
+                  },
+                })
+              }
+              placeholder="username"
+            />
+
+            <Select
+              label="认证方式"
+              value={conn.ssh_tunnel?.auth_method || 'password'}
+              onChange={(value) =>
+                onChange({
+                  ...conn,
+                  ssh_tunnel: {
+                    ...conn.ssh_tunnel!,
+                    auth_method: (value as 'password' | 'key') || 'password',
+                  },
+                })
+              }
+              data={[
+                { value: 'password', label: '密码认证' },
+                { value: 'key', label: '密钥认证' },
+              ]}
+            />
+
+            {conn.ssh_tunnel?.auth_method === 'password' ? (
+              <TextInput
+                label="SSH密码"
+                type="password"
+                value={conn.ssh_tunnel?.password || ''}
+                onChange={(e) =>
+                  onChange({
+                    ...conn,
+                    ssh_tunnel: {
+                      ...conn.ssh_tunnel!,
+                      password: e.currentTarget.value,
+                    },
+                  })
+                }
+                placeholder="SSH密码"
+              />
+            ) : (
+              <Stack gap="sm">
+                <Group grow align="end">
+                  <TextInput
+                    label="私钥文件路径"
+                    value={conn.ssh_tunnel?.private_key_path || ''}
+                    onChange={(e) =>
+                      onChange({
+                        ...conn,
+                        ssh_tunnel: {
+                          ...conn.ssh_tunnel!,
+                          private_key_path: e.currentTarget.value,
+                        },
+                      })
+                    }
+                    placeholder="/path/to/private/key"
+                  />
+                  <ActionIcon
+                    size="input-sm"
+                    variant="default"
+                    onClick={handleSelectPrivateKeyFile}
+                    title="浏览文件"
+                  >
+                    <IconFolder size={16} />
+                  </ActionIcon>
+                </Group>
+                <TextInput
+                  label="私钥密码（可选）"
+                  type="password"
+                  value={conn.ssh_tunnel?.private_key_passphrase || ''}
+                  onChange={(e) =>
+                    onChange({
+                      ...conn,
+                      ssh_tunnel: {
+                        ...conn.ssh_tunnel!,
+                        private_key_passphrase: e.currentTarget.value,
+                      },
+                    })
+                  }
+                  placeholder="私钥密码（如果有）"
+                />
+              </Stack>
+            )}
+
+            <Group grow>
+              <TextInput
+                label="远程主机"
+                value={conn.ssh_tunnel?.remote_host || 'localhost'}
+                onChange={(e) =>
+                  onChange({
+                    ...conn,
+                    ssh_tunnel: {
+                      ...conn.ssh_tunnel!,
+                      remote_host: e.currentTarget.value,
+                    },
+                  })
+                }
+                placeholder="localhost"
+              />
+              <NumberInput
+                label="远程端口"
+                value={conn.ssh_tunnel?.remote_port || 9000}
+                onChange={(value) =>
+                  onChange({
+                    ...conn,
+                    ssh_tunnel: {
+                      ...conn.ssh_tunnel!,
+                      remote_port: typeof value === 'number' ? value : 9000,
+                    },
+                  })
+                }
+                min={1}
+                max={65535}
+                placeholder="9000"
+              />
+            </Group>
+
+            <Text size="xs" c="dimmed">
+              SSH隧道将在本地创建一个端口转发，通过SSH连接访问内网的Minio实例。
+            </Text>
+          </Stack>
+        </Collapse>
+      </Card>
 
       <Button onClick={handleSubmit} loading={loading} fullWidth>
         Connect

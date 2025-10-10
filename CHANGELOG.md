@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.0](https://github.com/moonrailgun/s3-file-viewer/compare/v0.1.6...v0.2.0) (2025-10-10)
+
+### Features
+
+* add create folder feature ([0e248fe](https://github.com/moonrailgun/s3-file-viewer/commit/0e248fe7f7f70cf3e337275cf614eceba10e82e6))
+* add delete confirm modal which can improve delete action ([e13aabf](https://github.com/moonrailgun/s3-file-viewer/commit/e13aabf63743b384581f792245a8431555290563))
+* add edit way in ConnectForm ([6cfb4f6](https://github.com/moonrailgun/s3-file-viewer/commit/6cfb4f663ba41eceae1f38ff7096c29d2ffa7b6c))
+* add MIME type inference and improve notification positioning ([8f7f84c](https://github.com/moonrailgun/s3-file-viewer/commit/8f7f84cdc1db57d5b23e9cdac85b680357429e48))
+* add more detail for s3 error ([2f4e48b](https://github.com/moonrailgun/s3-file-viewer/commit/2f4e48b7945ee12336728c0c60673dfdb7c33770))
+* add upload progress feature ([55f4394](https://github.com/moonrailgun/s3-file-viewer/commit/55f43943c643598fd183e0a06c631c3921725b39))
+
+### Document
+
+* update README ([e0d5e1e](https://github.com/moonrailgun/s3-file-viewer/commit/e0d5e1e09cc356d548e627fdc4fcc4e64353783a))
+
+### Others
+
+* only successed connect will add to save connections ([6dad2f2](https://github.com/moonrailgun/s3-file-viewer/commit/6dad2f2513ed61de8bba4a5c42fff7d27ea06128))
+* update text of connect form ([0d0be66](https://github.com/moonrailgun/s3-file-viewer/commit/0d0be66caeb41ae0674371030629e6681f4ee450))
+
 ## [0.1.6](https://github.com/moonrailgun/s3-file-viewer/compare/v0.1.5...v0.1.6) (2025-09-05)
 
 ### Others

@@ -10,9 +10,40 @@ use thiserror::Error;
 use aws_credential_types::Credentials;
 use aws_sdk_s3 as s3;
 use aws_sdk_s3::presigning::PresigningConfig;
+use aws_smithy_types::error::metadata::ProvideErrorMetadata;
 use base64::{engine::general_purpose, Engine};
 use s3::primitives::DateTime;
 use std::time::Duration;
+
+// Helper function to extract error code and message from AWS SDK errors
+fn format_s3_error<E, R>(error: &s3::error::SdkError<E, R>) -> String
+where
+    E: std::error::Error + ProvideErrorMetadata,
+{
+    match error {
+        s3::error::SdkError::ServiceError(err) => {
+            // Extract error code and message from service error metadata
+            let source = err.err();
+            let code = source.code().unwrap_or("UnknownError");
+            let message = source.message().unwrap_or("No error message available");
+            format!("{}: {}", code, message)
+        }
+        s3::error::SdkError::TimeoutError(_) => "Request timeout".to_string(),
+        s3::error::SdkError::DispatchFailure(err) => {
+            format!("Connection failed: {:?}", err)
+        }
+        s3::error::SdkError::ResponseError(_) => "Response error occurred".to_string(),
+        s3::error::SdkError::ConstructionFailure(err) => {
+            format!("Request construction failed: {:?}", err)
+        }
+        _ => format!("{}", error),
+    }
+}
+
+// Helper function for generic errors
+fn format_error_details<E: std::fmt::Display>(error: &E) -> String {
+    error.to_string()
+}
 
 // Shared state for S3 client and connection info
 #[derive(Clone)]
@@ -110,7 +141,7 @@ async fn connect(
         }
         Err(e) => {
             eprintln!("[connect] list_buckets error: {e:#?}"); // Print detailed error
-            return Err(e.to_string());
+            return Err(format_s3_error(e));
         }
     }
 
@@ -141,7 +172,7 @@ async fn list_buckets(
         .list_buckets()
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format_s3_error(&e))?;
 
     let names: Vec<String> = resp
         .buckets()
@@ -215,7 +246,7 @@ async fn list_objects(
         }
         Err(e) => {
             eprintln!("[list_objects] list_objects_v2 request failed: {e:#?}");
-            return Err(e.to_string());
+            return Err(format_s3_error(&e));
         }
     };
 
@@ -275,7 +306,7 @@ async fn create_folder(
         .body(aws_sdk_s3::primitives::ByteStream::from_static(&[]))
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format_s3_error(&e))?;
     Ok(())
 }
 
@@ -293,7 +324,7 @@ async fn delete_object(
         .key(key)
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format_s3_error(&e))?;
     Ok(())
 }
 
@@ -325,7 +356,7 @@ async fn upload_object(
     let app = guard.as_ref().ok_or("Not connected")?;
     let data = general_purpose::STANDARD
         .decode(&params.content_base64)
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format_error_details(&e))?;
     let body = aws_sdk_s3::primitives::ByteStream::from(data);
 
     let mut put_request = app
@@ -340,7 +371,7 @@ async fn upload_object(
         put_request = put_request.content_type(content_type);
     }
 
-    put_request.send().await.map_err(|e| e.to_string())?;
+    put_request.send().await.map_err(|e| format_s3_error(&e))?;
     Ok(())
 }
 
@@ -356,7 +387,7 @@ async fn upload_object_with_progress(
     // Decode the base64 content
     let data = general_purpose::STANDARD
         .decode(&params.content_base64)
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format_error_details(&e))?;
     let total_size = data.len();
 
     // Send initial progress event
@@ -396,7 +427,7 @@ async fn upload_object_with_progress(
             put_request = put_request.content_type(content_type);
         }
 
-        put_request.send().await.map_err(|e| e.to_string())?;
+        put_request.send().await.map_err(|e| format_s3_error(&e))?;
 
         // Send completion progress
         let _ = app_handle.emit(
@@ -444,7 +475,7 @@ async fn upload_object_with_progress(
             put_request = put_request.content_type(content_type);
         }
 
-        put_request.send().await.map_err(|e| e.to_string())?;
+        put_request.send().await.map_err(|e| format_s3_error(&e))?;
 
         // Send final completion
         let _ = app_handle.emit(
@@ -491,8 +522,8 @@ async fn get_object_url(
     let app = guard.as_ref().ok_or("Not connected")?;
     let secs = expires_secs.unwrap_or(900);
     let capped = secs.min(7 * 24 * 60 * 60);
-    let cfg =
-        PresigningConfig::expires_in(Duration::from_secs(capped)).map_err(|e| e.to_string())?;
+    let cfg = PresigningConfig::expires_in(Duration::from_secs(capped))
+        .map_err(|e| format_error_details(&e))?;
     let req = app
         .s3_client
         .get_object()
@@ -500,6 +531,6 @@ async fn get_object_url(
         .key(key)
         .presigned(cfg)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format_s3_error(&e))?;
     Ok(req.uri().to_string())
 }

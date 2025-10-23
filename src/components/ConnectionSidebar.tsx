@@ -5,7 +5,6 @@ import {
   Group,
   Text,
   UnstyledButton,
-  ActionIcon,
   Loader,
   Button,
   Collapse,
@@ -20,7 +19,6 @@ import {
   IconRefresh,
   IconTrash,
   IconPlugConnected,
-  IconPlugConnectedX,
 } from '@tabler/icons-react';
 import { SavedConnection, BucketInfo } from '../types';
 import {
@@ -62,6 +60,9 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
   const [expandedConnections, setExpandedConnections] = useState<Set<string>>(
     new Set()
   );
+  const [contextMenuOpened, setContextMenuOpened] = useState<string | null>(
+    null
+  );
 
   // Load saved connections
   useEffect(() => {
@@ -82,6 +83,24 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  // Auto-collapse inactive connections when active connection changes
+  useEffect(() => {
+    if (activeConnectionId) {
+      setExpandedConnections((prev) => {
+        const newSet = new Set(prev);
+        // Remove all expanded connections except the active one
+        Array.from(newSet).forEach((connId) => {
+          if (connId !== activeConnectionId) {
+            newSet.delete(connId);
+          }
+        });
+        // Ensure active connection is expanded
+        newSet.add(activeConnectionId);
+        return newSet;
+      });
+    }
+  }, [activeConnectionId]);
 
   const toggleExpanded = (connectionId: string) => {
     setExpandedConnections((prev) => {
@@ -117,7 +136,17 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
     connectionBuckets.get(connectionId) || [];
 
   return (
-    <Stack gap={0} h="100%" style={{ overflow: 'hidden' }}>
+    <Stack
+      gap={0}
+      h="100%"
+      style={{
+        overflow: 'hidden',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        MozUserSelect: 'none',
+        msUserSelect: 'none',
+      }}
+    >
       {/* Header with New Connection button */}
       <Box
         p="xs"
@@ -153,10 +182,21 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
               return (
                 <Box key={conn.id}>
                   {/* Connection item */}
-                  <Menu position="right-start" withArrow>
+                  <Menu
+                    position="right-start"
+                    withArrow
+                    opened={contextMenuOpened === conn.id}
+                    onChange={(opened) => {
+                      if (!opened) setContextMenuOpened(null);
+                    }}
+                  >
                     <Menu.Target>
                       <UnstyledButton
                         onClick={() => toggleExpanded(conn.id)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setContextMenuOpened(conn.id);
+                        }}
                         style={{
                           width: '100%',
                           padding: '6px 8px',
@@ -204,6 +244,7 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           onRefreshBuckets(conn.id);
+                          setContextMenuOpened(null);
                         }}
                         disabled={!active}
                       >
@@ -212,7 +253,10 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
                       <Menu.Item
                         leftSection={<IconTrash size={14} />}
                         color="red"
-                        onClick={(e) => handleDeleteConnection(conn.id, e)}
+                        onClick={(e) => {
+                          handleDeleteConnection(conn.id, e);
+                          setContextMenuOpened(null);
+                        }}
                       >
                         Delete Connection
                       </Menu.Item>
@@ -254,6 +298,7 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
                             >
                               <Group gap={6} wrap="nowrap">
                                 <IconDatabase
+                                  className="shrink-0"
                                   size={12}
                                   color="var(--mantine-color-blue-6)"
                                 />

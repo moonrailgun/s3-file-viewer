@@ -196,6 +196,8 @@ export function useS3Browser() {
       return;
     }
 
+    // Clear objects list immediately when switching bucket
+    setObjects([]);
     setBucket(bucketName);
     setPrefix('');
   }

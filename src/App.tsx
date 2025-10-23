@@ -1,21 +1,21 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   AppShell,
-  Container,
   Group,
-  Stack,
   Anchor,
   Modal,
   Center,
   Loader,
+  Text,
+  Box,
 } from '@mantine/core';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { openUrl as openExternalUrl } from '@tauri-apps/plugin-opener';
+import { listen } from '@tauri-apps/api/event';
 import { useS3Browser } from './hooks/useS3Browser';
-import { HeaderBar } from './components/HeaderBar';
-import { ConnectForm } from './components/ConnectForm';
-import { Toolbar } from './components/Toolbar';
+import { ConnectionSidebar } from './components/ConnectionSidebar';
+import { CompactToolbar } from './components/CompactToolbar';
 import { ObjectListTable } from './components/ObjectListTable';
 import { ObjectThumb } from './components/ObjectThumb';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
@@ -24,28 +24,26 @@ import { notifications } from '@mantine/notifications';
 
 function App() {
   const {
-    connected,
     loading,
-    buckets,
     objects,
     view,
-    showConnect,
-    connSafe,
     bucket,
     prefix,
     uploadProgress,
+    activeConnectionId,
+    connectionBuckets,
+    connectionLoading,
     setView,
-    setConn,
-    setBucket,
     setPrefix,
-    doConnect,
-    doDisconnect,
-    handleConnectionSuccess,
     ensureObjectUrl,
     fetchObjects,
     deleteObject,
     createFolder,
     uploadFile,
+    connectToSavedConnection,
+    refreshConnectionBuckets,
+    selectConnectionBucket,
+    deleteConnectionFromState,
   } = useS3Browser();
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -61,11 +59,28 @@ function App() {
     new Map()
   );
 
+  // Listen for connection created event from connection form window
+  useEffect(() => {
+    const unlisten = listen('connection-created', (event: any) => {
+      const { connectionId } = event.payload;
+      if (connectionId) {
+        // Trigger a reconnection or refresh to pick up the new connection
+        setTimeout(() => {
+          connectToSavedConnection(connectionId);
+        }, 100);
+      }
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
+
   const breadcrumbItems = useMemo(() => {
     const parts = (prefix || '').replace(/\/+$/, '').split('/').filter(Boolean);
     const items: React.ReactNode[] = [];
     items.push(
-      <Anchor key="/" onClick={() => setPrefix('')}>
+      <Anchor key="/" onClick={() => setPrefix('')} size="sm">
         /
       </Anchor>
     );
@@ -75,7 +90,7 @@ function App() {
       const target = `${acc}/`;
 
       items.push(
-        <Anchor key={acc} onClick={() => setPrefix(target)}>
+        <Anchor key={acc} onClick={() => setPrefix(target)} size="sm">
           {part}
         </Anchor>
       );
@@ -83,10 +98,27 @@ function App() {
     return items;
   }, [prefix]);
 
-  function handleSelectBucket(bucketName: string | null) {
-    setBucket(bucketName);
-    setPrefix(''); // 重置路径为根目录
-  }
+  const handleCreateConnection = () => {
+    // Open connection form in new window
+    const win = new WebviewWindow('connection-form', {
+      url: '/src/windows/connection-form.html',
+      title: 'New Connection',
+      width: 450,
+      height: 560,
+      center: true,
+      resizable: false,
+      decorations: true,
+    });
+
+    win.once('tauri://error', (e) => {
+      console.error('Connection form window error:', e);
+      notifications.show({
+        message: `Cannot open connection window: ${e.payload}`,
+        color: 'red',
+        position: 'bottom-right',
+      });
+    });
+  };
 
   async function copyObjectUrl(key: string) {
     try {
@@ -116,8 +148,6 @@ function App() {
         throw new Error('no url');
       }
 
-      console.log('Creating preview window for:', key, 'with URL:', url);
-
       try {
         const label = `preview-${Date.now()}`;
         const win = new WebviewWindow(label, {
@@ -130,13 +160,6 @@ function App() {
           decorations: true,
         });
 
-        console.log('Preview window created:', win);
-
-        // 监听窗口事件
-        win.once('tauri://created', () => {
-          console.log('Preview window created successfully');
-        });
-
         win.once('tauri://error', (e) => {
           console.error('Preview window error:', e);
           notifications.show({
@@ -147,7 +170,6 @@ function App() {
         });
       } catch (webviewError) {
         console.error('Webview creation failed:', webviewError);
-        console.log('Falling back to external browser...');
         await openExternalUrl(url);
       }
     } catch (e) {
@@ -196,75 +218,87 @@ function App() {
   }
 
   return (
-    <AppShell header={{ height: 64 }} padding="md">
-      <HeaderBar
-        connected={connected}
-        buckets={buckets}
-        bucket={bucket}
-        onSelectBucket={handleSelectBucket}
-        view={view}
-        onChangeView={setView}
-        onRefresh={fetchObjects}
-        onDisconnect={doDisconnect}
-        loading={loading}
-      />
+    <AppShell navbar={{ width: 250, breakpoint: 'sm' }} padding={0}>
+      {/* Left Sidebar */}
+      <AppShell.Navbar
+        style={{
+          borderRight:
+            '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
+        }}
+      >
+        <ConnectionSidebar
+          activeConnectionId={activeConnectionId}
+          selectedBucket={bucket}
+          connectionBuckets={connectionBuckets}
+          connectionLoading={connectionLoading}
+          onCreateConnection={handleCreateConnection}
+          onSelectConnection={connectToSavedConnection}
+          onSelectBucket={selectConnectionBucket}
+          onRefreshBuckets={refreshConnectionBuckets}
+          onDeleteConnection={deleteConnectionFromState}
+        />
+      </AppShell.Navbar>
 
-      <AppShell.Main>
-        <Container size="lg">
-          {showConnect ? (
-            <ConnectForm
-              conn={connSafe}
-              onChange={setConn}
-              onSubmit={() => doConnect()}
-              onConnectionSuccess={handleConnectionSuccess}
+      {/* Main Content */}
+      <AppShell.Main
+        style={{
+          height: '100vh',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {bucket ? (
+          <>
+            <CompactToolbar
+              breadcrumbItems={breadcrumbItems}
+              view={view}
+              onChangeView={setView}
+              onRefresh={fetchObjects}
+              onCreateFolder={async (name) => {
+                try {
+                  await createFolder(name);
+                  notifications.show({
+                    message: `Folder created: ${name}`,
+                    color: 'green',
+                    position: 'bottom-right',
+                  });
+                  fetchObjects();
+                } catch (err: any) {
+                  notifications.show({
+                    message: `Create folder failed: ${err}`,
+                    color: 'red',
+                    position: 'bottom-right',
+                  });
+                }
+              }}
+              onUpload={async (file) => {
+                try {
+                  const uploadId = await uploadFile(file);
+                  setUploadFileNames(
+                    (prev) => new Map([...prev, [uploadId, file.name]])
+                  );
+                  notifications.show({
+                    message: `Uploaded: ${file.name}`,
+                    color: 'green',
+                    position: 'bottom-right',
+                  });
+                  fetchObjects();
+                } catch (err: any) {
+                  notifications.show({
+                    message: `Upload failed: ${err}`,
+                    color: 'red',
+                    position: 'bottom-right',
+                  });
+                }
+              }}
               loading={loading}
+              hasBucket={!!bucket}
             />
-          ) : (
-            <Stack>
-              <Toolbar
-                connected={connected}
-                breadcrumbItems={breadcrumbItems}
-                onCreateFolder={async (name) => {
-                  try {
-                    await createFolder(name);
-                    notifications.show({
-                      message: `Folder created: ${name}`,
-                      color: 'green',
-                      position: 'bottom-right',
-                    });
-                    fetchObjects();
-                  } catch (err: any) {
-                    notifications.show({
-                      message: `Create folder failed: ${err}`,
-                      color: 'red',
-                      position: 'bottom-right',
-                    });
-                  }
-                }}
-                onUpload={async (file) => {
-                  try {
-                    const uploadId = await uploadFile(file);
-                    setUploadFileNames(
-                      (prev) => new Map([...prev, [uploadId, file.name]])
-                    );
-                    notifications.show({
-                      message: `Uploaded: ${file.name}`,
-                      color: 'green',
-                      position: 'bottom-right',
-                    });
-                    fetchObjects();
-                  } catch (err: any) {
-                    notifications.show({
-                      message: `Upload failed: ${err}`,
-                      color: 'red',
-                      position: 'bottom-right',
-                    });
-                  }
-                }}
-              />
 
+            <Box style={{ flex: 1, overflow: 'auto' }} p="xs">
               {loading ? (
-                <Center mih={200}>
+                <Center h="100%">
                   <Loader type="dots" />
                 </Center>
               ) : view === 'list' ? (
@@ -315,9 +349,19 @@ function App() {
                   </Modal>
                 </>
               )}
-            </Stack>
-          )}
-        </Container>
+            </Box>
+          </>
+        ) : (
+          <Center h="100%" style={{ flexDirection: 'column', gap: '1rem' }}>
+            <Text size="lg" c="dimmed">
+              Welcome to S3 File Viewer
+            </Text>
+            <Text size="sm" c="dimmed">
+              Please select a connection and bucket from the left sidebar to
+              start browsing
+            </Text>
+          </Center>
+        )}
       </AppShell.Main>
 
       {/* Delete Confirmation Modal */}

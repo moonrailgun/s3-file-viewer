@@ -41,10 +41,12 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
               c="dimmed"
               style={{
                 wordBreak: 'break-all',
-                backgroundColor: 'var(--mantine-color-gray-1)',
+                backgroundColor:
+                  'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))',
                 padding: '8px',
                 borderRadius: '4px',
-                border: '1px solid var(--mantine-color-gray-3)',
+                border:
+                  '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
               }}
             >
               {fileName}

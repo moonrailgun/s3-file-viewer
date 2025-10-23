@@ -7,6 +7,7 @@ import { BucketInfo, ConnectionParams, S3ObjectInfo } from '../types';
 import {
   updateConnectionLastUsed,
   saveConnection,
+  loadSavedConnections,
 } from '../utils/connectionManager';
 import { inferMimeType } from '../utils/mimeTypes';
 
@@ -17,13 +18,24 @@ interface UploadProgress {
   total: number;
 }
 
-// Core stateful logic for S3 browsing
+// Core stateful logic for S3 browsing with multi-connection support
 export function useS3Browser() {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [buckets, setBuckets] = useState<BucketInfo[]>([]);
   const [objects, setObjects] = useState<S3ObjectInfo[]>([]);
   const urlCacheRef = useRef<Map<string, string>>(new Map());
+
+  // Multi-connection state
+  const [activeConnectionId, setActiveConnectionId] = useState<string | null>(
+    null
+  );
+  const [connectionBuckets, setConnectionBuckets] = useState<
+    Map<string, BucketInfo[]>
+  >(new Map());
+  const [connectionLoading, setConnectionLoading] = useState<
+    Map<string, boolean>
+  >(new Map());
 
   // Upload progress state
   const [uploadProgress, setUploadProgress] = useState<
@@ -80,6 +92,133 @@ export function useS3Browser() {
       throw err; // Re-throw error so ConnectForm can handle it
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Connect to a saved connection by ID
+  async function connectToSavedConnection(connectionId: string) {
+    const savedConnections = loadSavedConnections();
+    const conn = savedConnections.find((c) => c.id === connectionId);
+    if (!conn) {
+      notifications.show({
+        message: 'Connection not found',
+        color: 'red',
+        position: 'bottom-right',
+      });
+      return;
+    }
+
+    try {
+      // Set loading for this connection
+      setConnectionLoading((prev) => new Map(prev).set(connectionId, true));
+
+      const params = {
+        endpoint: conn.endpoint,
+        access_key: conn.access_key,
+        secret_key: conn.secret_key,
+        region: conn.region,
+      };
+
+      await invoke('connect', { params });
+      setConnected(true);
+      setActiveConnectionId(connectionId);
+      setConn(params);
+
+      // Update last used time
+      updateConnectionLastUsed(params);
+
+      // Fetch and cache buckets for this connection
+      const bucketList = (await invoke('list_buckets')) as BucketInfo[];
+      setConnectionBuckets((prev) =>
+        new Map(prev).set(connectionId, bucketList)
+      );
+      setBuckets(bucketList);
+
+      notifications.show({
+        message: 'Connected successfully',
+        color: 'green',
+        position: 'bottom-right',
+      });
+    } catch (err: any) {
+      notifications.show({
+        message: `Connection failed: ${err}`,
+        color: 'red',
+        position: 'bottom-right',
+      });
+    } finally {
+      setConnectionLoading((prev) => new Map(prev).set(connectionId, false));
+    }
+  }
+
+  // Refresh buckets for a connection
+  async function refreshConnectionBuckets(connectionId: string) {
+    if (activeConnectionId !== connectionId) {
+      notifications.show({
+        message: 'Please connect to this connection first',
+        color: 'orange',
+        position: 'bottom-right',
+      });
+      return;
+    }
+
+    try {
+      setConnectionLoading((prev) => new Map(prev).set(connectionId, true));
+      const bucketList = (await invoke('list_buckets')) as BucketInfo[];
+      setConnectionBuckets((prev) =>
+        new Map(prev).set(connectionId, bucketList)
+      );
+      setBuckets(bucketList);
+
+      notifications.show({
+        message: 'Buckets refreshed',
+        color: 'green',
+        position: 'bottom-right',
+      });
+    } catch (err: any) {
+      notifications.show({
+        message: `Refresh failed: ${err}`,
+        color: 'red',
+        position: 'bottom-right',
+      });
+    } finally {
+      setConnectionLoading((prev) => new Map(prev).set(connectionId, false));
+    }
+  }
+
+  // Select a bucket from a connection
+  function selectConnectionBucket(connectionId: string, bucketName: string) {
+    if (activeConnectionId !== connectionId) {
+      notifications.show({
+        message: 'Please connect to this connection first',
+        color: 'orange',
+        position: 'bottom-right',
+      });
+      return;
+    }
+
+    setBucket(bucketName);
+    setPrefix('');
+  }
+
+  // Delete connection from state
+  function deleteConnectionFromState(connectionId: string) {
+    setConnectionBuckets((prev) => {
+      const newMap = new Map(prev);
+      newMap.delete(connectionId);
+      return newMap;
+    });
+    setConnectionLoading((prev) => {
+      const newMap = new Map(prev);
+      newMap.delete(connectionId);
+      return newMap;
+    });
+
+    if (activeConnectionId === connectionId) {
+      setActiveConnectionId(null);
+      setConnected(false);
+      setBuckets([]);
+      setObjects([]);
+      setBucket(null);
     }
   }
 
@@ -271,6 +410,10 @@ export function useS3Browser() {
     prefix,
     uploadProgress,
     activeUploads,
+    // Multi-connection state
+    activeConnectionId,
+    connectionBuckets,
+    connectionLoading,
     // setters
     setView,
     setShowConnect,
@@ -287,5 +430,10 @@ export function useS3Browser() {
     deleteObject,
     createFolder,
     uploadFile,
+    // Multi-connection actions
+    connectToSavedConnection,
+    refreshConnectionBuckets,
+    selectConnectionBucket,
+    deleteConnectionFromState,
   } as const;
 }

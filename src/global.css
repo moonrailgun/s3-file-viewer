@@ -1,5 +1,87 @@
 @import "tailwindcss";
 
+/* Compact layout styles */
+:root {
+  --compact-font-size: 13px;
+  --compact-font-size-sm: 11px;
+  --compact-spacing: 8px;
+  --compact-spacing-xs: 4px;
+}
+
+/* Global compact styles */
+body {
+  font-size: var(--compact-font-size);
+  line-height: 1.4;
+}
+
+/* Mantine component overrides for compact layout */
+.mantine-Button-root {
+  font-size: var(--compact-font-size);
+  padding: 6px 12px;
+  height: auto;
+}
+
+.mantine-Button-root[data-size="xs"] {
+  font-size: var(--compact-font-size-sm);
+  padding: 4px 8px;
+}
+
+.mantine-Button-root[data-size="sm"] {
+  font-size: var(--compact-font-size);
+  padding: 5px 10px;
+}
+
+.mantine-ActionIcon-root {
+  width: 28px;
+  height: 28px;
+}
+
+.mantine-ActionIcon-root[data-size="sm"] {
+  width: 24px;
+  height: 24px;
+}
+
+.mantine-TextInput-root,
+.mantine-Select-root {
+  font-size: var(--compact-font-size);
+}
+
+.mantine-TextInput-input,
+.mantine-Select-input {
+  font-size: var(--compact-font-size);
+  padding: 6px 10px;
+  min-height: 32px;
+  height: 32px;
+}
+
+.mantine-TextInput-label,
+.mantine-Select-label {
+  font-size: var(--compact-font-size);
+  margin-bottom: 4px;
+}
+
+.mantine-Table-root {
+  font-size: var(--compact-font-size);
+}
+
+.mantine-Table-th,
+.mantine-Table-td {
+  padding: 6px 10px;
+}
+
+.mantine-Breadcrumbs-root {
+  font-size: var(--compact-font-size);
+}
+
+.mantine-SegmentedControl-root {
+  padding: 2px;
+}
+
+.mantine-SegmentedControl-label {
+  padding: 4px 8px;
+  font-size: var(--compact-font-size-sm);
+}
+
 /* Connection list item styles */
 .connection-item {
   cursor: pointer;
@@ -10,6 +92,30 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* .connection-item.selected {
-  box-shadow: 0 0 0 2px var(--mantine-primary-color-filled);
-} */
+/* Connection sidebar item styles */
+.connection-sidebar-item {
+  transition: background-color 0.15s ease;
+}
+
+.connection-sidebar-item:hover {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+}
+
+/* Compact scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+}
+
+::-webkit-scrollbar-thumb {
+  background: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}

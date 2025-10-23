@@ -22,7 +22,8 @@ export const UploadProgressBar: React.FC<UploadProgressProps> = ({
     <Box
       p="md"
       style={{
-        border: '1px solid var(--mantine-color-gray-4)',
+        border:
+          '1px solid light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4))',
         borderRadius: '8px',
         backgroundColor: 'var(--mantine-color-body)',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',

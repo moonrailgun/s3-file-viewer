@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import {
   MantineProvider,
@@ -14,7 +14,11 @@ import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { emit } from '@tauri-apps/api/event';
 import { ConnectionParams } from '../types';
-import { saveConnection } from '../utils/connectionManager';
+import {
+  saveConnection,
+  loadSavedConnections,
+  updateConnection,
+} from '../utils/connectionManager';
 // Mantine styles
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
@@ -31,6 +35,31 @@ const ConnectionFormWindow: React.FC = () => {
     secret_key: '',
     region: 'us-east-1',
   });
+  const [editMode, setEditMode] = useState(false);
+  const [connectionId, setConnectionId] = useState<string | null>(null);
+
+  // Load connection data if editing
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const connId = urlParams.get('connectionId');
+
+    if (connId) {
+      const connections = loadSavedConnections();
+      const existingConn = connections.find((c) => c.id === connId);
+
+      if (existingConn) {
+        setEditMode(true);
+        setConnectionId(connId);
+        setConnectionName(existingConn.name);
+        setConn({
+          endpoint: existingConn.endpoint,
+          access_key: existingConn.access_key,
+          secret_key: existingConn.secret_key,
+          region: existingConn.region,
+        });
+      }
+    }
+  }, []);
 
   const handleTest = async () => {
     try {
@@ -63,19 +92,36 @@ const ConnectionFormWindow: React.FC = () => {
       // Test connection
       await invoke('connect', { params: conn });
 
-      // Save connection with custom name if provided
-      const savedConn = saveConnection(
-        conn,
-        connectionName.trim() || undefined
-      );
+      let savedConnId: string;
+
+      if (editMode && connectionId) {
+        // Update existing connection
+        updateConnection(connectionId, {
+          ...conn,
+          name: connectionName.trim() || connectionId,
+        });
+        savedConnId = connectionId;
+
+        notifications.show({
+          message: 'Connection updated successfully!',
+          color: 'green',
+        });
+      } else {
+        // Save new connection
+        const savedConn = saveConnection(
+          conn,
+          connectionName.trim() || undefined
+        );
+        savedConnId = savedConn.id;
+
+        notifications.show({
+          message: 'Connected successfully!',
+          color: 'green',
+        });
+      }
 
       // Emit event to main window
-      await emit('connection-created', { connectionId: savedConn.id });
-
-      notifications.show({
-        message: 'Connected successfully!',
-        color: 'green',
-      });
+      await emit('connection-created', { connectionId: savedConnId });
 
       // Close window after a short delay
       setTimeout(() => {
@@ -111,7 +157,9 @@ const ConnectionFormWindow: React.FC = () => {
       <Notifications position="top-right" />
       <Box p="md">
         <Stack gap="md">
-          <Title order={4}>New S3 Connection</Title>
+          <Title order={4}>
+            {editMode ? 'Edit S3 Connection' : 'New S3 Connection'}
+          </Title>
 
           <TextInput
             label="Connection Name"
@@ -197,7 +245,7 @@ const ConnectionFormWindow: React.FC = () => {
                 Cancel
               </Button>
               <Button onClick={handleSubmit} loading={loading} size="sm">
-                Connect & Save
+                {editMode ? 'Update & Save' : 'Connect & Save'}
               </Button>
             </Group>
           </Group>

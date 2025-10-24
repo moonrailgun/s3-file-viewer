@@ -93,6 +93,32 @@ export function removeSavedConnection(id: string): void {
 }
 
 /**
+ * Update an existing connection
+ */
+export function updateConnection(
+  id: string,
+  updates: Partial<SavedConnection>
+): void {
+  const connections = loadSavedConnections();
+  const index = connections.findIndex((c) => c.id === id);
+
+  if (index >= 0) {
+    connections[index] = {
+      ...connections[index],
+      ...updates,
+      id, // Keep the same ID
+      last_used: new Date().toISOString(),
+    };
+
+    try {
+      localStorage.setItem(CONNECTIONS_KEY, JSON.stringify(connections));
+    } catch (error) {
+      console.error('Failed to update connection:', error);
+    }
+  }
+}
+
+/**
  * Update last used time for a connection
  */
 export function updateConnectionLastUsed(conn: ConnectionParams): void {

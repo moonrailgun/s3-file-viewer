@@ -144,6 +144,28 @@ function App() {
     });
   };
 
+  const handleEditConnection = (connectionId: string) => {
+    // Open connection form in edit mode with connection ID
+    const win = new WebviewWindow(`connection-form-${Date.now()}`, {
+      url: `/src/windows/connection-form.html?connectionId=${connectionId}`,
+      title: 'Edit Connection',
+      width: 450,
+      height: 560,
+      center: true,
+      resizable: false,
+      decorations: true,
+    });
+
+    win.once('tauri://error', (e) => {
+      console.error('Connection form window error:', e);
+      notifications.show({
+        message: `Cannot open connection window: ${e.payload}`,
+        color: 'red',
+        position: 'bottom-right',
+      });
+    });
+  };
+
   async function copyObjectUrl(key: string) {
     try {
       const url = await ensureObjectUrl(key);
@@ -315,6 +337,7 @@ function App() {
           onSelectConnection={connectToSavedConnection}
           onSelectBucket={selectConnectionBucket}
           onRefreshBuckets={refreshConnectionBuckets}
+          onEditConnection={handleEditConnection}
           onRequestDeleteConnection={handleRequestDeleteConnection}
         />
       </AppShell.Navbar>

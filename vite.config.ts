@@ -10,6 +10,12 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
 
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src'),
+    },
+  },
+
   // Multiple entry points for different windows
   build: {
     rollupOptions: {

@@ -8,7 +8,6 @@ import {
   Loader,
   Button,
   Collapse,
-  Menu,
 } from '@mantine/core';
 import {
   IconServer,
@@ -16,15 +15,19 @@ import {
   IconChevronRight,
   IconChevronDown,
   IconPlus,
-  IconRefresh,
-  IconTrash,
   IconPlugConnected,
 } from '@tabler/icons-react';
-import { SavedConnection, BucketInfo } from '../types';
+import { RefreshCw, Trash2, Plus } from 'lucide-react';
+import { listen } from '@tauri-apps/api/event';
 import {
-  loadSavedConnections,
-  removeSavedConnection,
-} from '../utils/connectionManager';
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from '@/components/ui/context-menu';
+import { SavedConnection, BucketInfo } from '../types';
+import { loadSavedConnections } from '../utils/connectionManager';
 
 export type ConnectionSidebarProps = {
   // Current active connection ID
@@ -40,7 +43,10 @@ export type ConnectionSidebarProps = {
   onSelectConnection: (connectionId: string) => void;
   onSelectBucket: (connectionId: string, bucketName: string) => void;
   onRefreshBuckets: (connectionId: string) => void;
-  onDeleteConnection: (connectionId: string) => void;
+  onRequestDeleteConnection: (
+    connectionId: string,
+    connectionName: string
+  ) => void;
 };
 
 export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
@@ -52,16 +58,13 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
   onSelectConnection,
   onSelectBucket,
   onRefreshBuckets,
-  onDeleteConnection,
+  onRequestDeleteConnection,
 }) => {
   const [savedConnections, setSavedConnections] = useState<SavedConnection[]>(
     []
   );
   const [expandedConnections, setExpandedConnections] = useState<Set<string>>(
     new Set()
-  );
-  const [contextMenuOpened, setContextMenuOpened] = useState<string | null>(
-    null
   );
 
   // Load saved connections
@@ -80,8 +83,18 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
       }
     };
 
+    // Listen for connection-created event from connection form window
+    const unlistenConnectionCreated = listen('connection-created', () => {
+      // Reload connections when a new connection is created
+      loadConnections();
+    });
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      unlistenConnectionCreated.then((fn) => fn());
+    };
   }, []);
 
   // Auto-collapse inactive connections when active connection changes
@@ -116,14 +129,13 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
     });
   };
 
-  const handleDeleteConnection = (
+  const handleDeleteConnectionRequest = (
     connectionId: string,
+    connectionName: string,
     event: React.MouseEvent
   ) => {
     event.stopPropagation();
-    removeSavedConnection(connectionId);
-    setSavedConnections(loadSavedConnections());
-    onDeleteConnection(connectionId);
+    onRequestDeleteConnection(connectionId, connectionName);
   };
 
   const isExpanded = (connectionId: string) =>
@@ -166,158 +178,188 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
       </Box>
 
       {/* Connections list */}
-      <Box style={{ flex: 1, overflow: 'auto' }} p={4}>
-        {savedConnections.length === 0 ? (
-          <Text size="xs" c="dimmed" ta="center" mt="md">
-            No saved connections
-          </Text>
-        ) : (
-          <Stack gap={2}>
-            {savedConnections.map((conn) => {
-              const expanded = isExpanded(conn.id);
-              const active = isActive(conn.id);
-              const loading = isLoading(conn.id);
-              const buckets = getBuckets(conn.id);
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <Box
+            style={{
+              flex: 1,
+              overflow: 'auto',
+              position: 'relative',
+            }}
+            p={4}
+          >
+            {savedConnections.length === 0 ? (
+              <Text size="xs" c="dimmed" ta="center" mt="md">
+                No saved connections
+              </Text>
+            ) : (
+              <Stack gap={2}>
+                {savedConnections.map((conn) => {
+                  const expanded = isExpanded(conn.id);
+                  const active = isActive(conn.id);
+                  const loading = isLoading(conn.id);
+                  const buckets = getBuckets(conn.id);
 
-              return (
-                <Box key={conn.id}>
-                  {/* Connection item */}
-                  <Menu
-                    position="right-start"
-                    withArrow
-                    opened={contextMenuOpened === conn.id}
-                    onChange={(opened) => {
-                      if (!opened) setContextMenuOpened(null);
-                    }}
-                  >
-                    <Menu.Target>
-                      <UnstyledButton
-                        onClick={() => toggleExpanded(conn.id)}
-                        onContextMenu={(e) => {
-                          e.preventDefault();
-                          setContextMenuOpened(conn.id);
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '6px 8px',
-                          borderRadius: '4px',
-                          backgroundColor: active
-                            ? 'light-dark(var(--mantine-color-blue-1), var(--mantine-color-dark-5))'
-                            : 'transparent',
-                          border: active
-                            ? '1px solid light-dark(var(--mantine-color-blue-3), var(--mantine-color-blue-7))'
-                            : '1px solid transparent',
-                        }}
-                        className="connection-sidebar-item"
-                      >
-                        <Group gap={6} wrap="nowrap">
-                          <Box style={{ width: 14, flexShrink: 0 }}>
-                            {expanded ? (
-                              <IconChevronDown size={14} />
-                            ) : (
-                              <IconChevronRight size={14} />
-                            )}
-                          </Box>
-                          <Box style={{ width: 14, flexShrink: 0 }}>
-                            {active ? (
-                              <IconPlugConnected
-                                size={14}
-                                color="var(--mantine-color-green-6)"
-                              />
-                            ) : (
-                              <IconServer
-                                size={14}
-                                color="var(--mantine-color-gray-6)"
-                              />
-                            )}
-                          </Box>
-                          <Text size="xs" fw={500} truncate style={{ flex: 1 }}>
-                            {conn.name}
-                          </Text>
-                          {loading && <Loader size={12} />}
-                        </Group>
-                      </UnstyledButton>
-                    </Menu.Target>
-                    <Menu.Dropdown>
-                      <Menu.Item
-                        leftSection={<IconRefresh size={14} />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRefreshBuckets(conn.id);
-                          setContextMenuOpened(null);
-                        }}
-                        disabled={!active}
-                      >
-                        Refresh Buckets
-                      </Menu.Item>
-                      <Menu.Item
-                        leftSection={<IconTrash size={14} />}
-                        color="red"
-                        onClick={(e) => {
-                          handleDeleteConnection(conn.id, e);
-                          setContextMenuOpened(null);
-                        }}
-                      >
-                        Delete Connection
-                      </Menu.Item>
-                    </Menu.Dropdown>
-                  </Menu>
+                  return (
+                    <Box key={conn.id}>
+                      {/* Connection item */}
+                      <ContextMenu>
+                        <ContextMenuTrigger asChild>
+                          <UnstyledButton
+                            onClick={() => toggleExpanded(conn.id)}
+                            style={{
+                              width: '100%',
+                              padding: '6px 8px',
+                              borderRadius: '4px',
+                              backgroundColor: active
+                                ? 'light-dark(var(--mantine-color-blue-1), var(--mantine-color-dark-5))'
+                                : 'transparent',
+                              border: active
+                                ? '1px solid light-dark(var(--mantine-color-blue-3), var(--mantine-color-blue-7))'
+                                : '1px solid transparent',
+                            }}
+                            className="connection-sidebar-item"
+                          >
+                            <Group gap={6} wrap="nowrap">
+                              <Box style={{ width: 14, flexShrink: 0 }}>
+                                {expanded ? (
+                                  <IconChevronDown size={14} />
+                                ) : (
+                                  <IconChevronRight size={14} />
+                                )}
+                              </Box>
+                              <Box style={{ width: 14, flexShrink: 0 }}>
+                                {active ? (
+                                  <IconPlugConnected
+                                    size={14}
+                                    color="var(--mantine-color-green-6)"
+                                  />
+                                ) : (
+                                  <IconServer
+                                    size={14}
+                                    color="var(--mantine-color-gray-6)"
+                                  />
+                                )}
+                              </Box>
+                              <Text
+                                size="xs"
+                                fw={500}
+                                truncate
+                                style={{ flex: 1 }}
+                              >
+                                {conn.name}
+                              </Text>
+                              {loading && <Loader size={12} />}
+                            </Group>
+                          </UnstyledButton>
+                        </ContextMenuTrigger>
+                        <ContextMenuContent>
+                          <ContextMenuItem
+                            disabled={!active}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRefreshBuckets(conn.id);
+                            }}
+                          >
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Refresh Buckets
+                          </ContextMenuItem>
+                          <ContextMenuSeparator />
+                          <ContextMenuItem
+                            variant="destructive"
+                            onClick={(e) => {
+                              handleDeleteConnectionRequest(
+                                conn.id,
+                                conn.name,
+                                e
+                              );
+                            }}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Connection
+                          </ContextMenuItem>
+                        </ContextMenuContent>
+                      </ContextMenu>
 
-                  {/* Buckets list */}
-                  <Collapse in={expanded}>
-                    <Stack gap={2} ml={14} mt={2}>
-                      {loading ? (
-                        <Group gap={6} p="4px 8px">
-                          <Loader size={12} />
-                          <Text size="xs" c="dimmed">
-                            Loading...
-                          </Text>
-                        </Group>
-                      ) : buckets.length === 0 ? (
-                        <Text size="xs" c="dimmed" p="4px 8px">
-                          {active ? 'No buckets' : 'Click to connect'}
-                        </Text>
-                      ) : (
-                        buckets.map((bucket) => {
-                          const isSelected =
-                            selectedBucket === bucket.name && active;
-                          return (
-                            <UnstyledButton
-                              key={bucket.name}
-                              onClick={() =>
-                                onSelectBucket(conn.id, bucket.name)
-                              }
-                              style={{
-                                padding: '4px 8px',
-                                borderRadius: '4px',
-                                backgroundColor: isSelected
-                                  ? 'light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5))'
-                                  : 'transparent',
-                              }}
-                              className="connection-sidebar-item"
-                            >
-                              <Group gap={6} wrap="nowrap">
-                                <IconDatabase
-                                  className="shrink-0"
-                                  size={12}
-                                  color="var(--mantine-color-blue-6)"
-                                />
-                                <Text size="xs" truncate>
-                                  {bucket.name}
-                                </Text>
-                              </Group>
-                            </UnstyledButton>
-                          );
-                        })
-                      )}
-                    </Stack>
-                  </Collapse>
-                </Box>
-              );
-            })}
-          </Stack>
-        )}
-      </Box>
+                      {/* Buckets list */}
+                      <Collapse in={expanded}>
+                        <Stack gap={2} ml={14} mt={2}>
+                          {loading ? (
+                            <Group gap={6} p="4px 8px">
+                              <Loader size={12} />
+                              <Text size="xs" c="dimmed">
+                                Loading...
+                              </Text>
+                            </Group>
+                          ) : buckets.length === 0 ? (
+                            <Text size="xs" c="dimmed" p="4px 8px">
+                              {active ? 'No buckets' : 'Click to connect'}
+                            </Text>
+                          ) : (
+                            buckets.map((bucket) => {
+                              const isSelected =
+                                selectedBucket === bucket.name && active;
+                              return (
+                                <UnstyledButton
+                                  key={bucket.name}
+                                  onClick={() =>
+                                    onSelectBucket(conn.id, bucket.name)
+                                  }
+                                  style={{
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    backgroundColor: isSelected
+                                      ? 'light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5))'
+                                      : 'transparent',
+                                  }}
+                                  className="connection-sidebar-item"
+                                >
+                                  <Group gap={6} wrap="nowrap">
+                                    <IconDatabase
+                                      className="shrink-0"
+                                      size={12}
+                                      color="var(--mantine-color-blue-6)"
+                                    />
+                                    <Text size="xs" truncate>
+                                      {bucket.name}
+                                    </Text>
+                                  </Group>
+                                </UnstyledButton>
+                              );
+                            })
+                          )}
+                        </Stack>
+                      </Collapse>
+                    </Box>
+                  );
+                })}
+              </Stack>
+            )}
+          </Box>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              const connections = loadSavedConnections();
+              setSavedConnections(connections);
+            }}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh Connections
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              onCreateConnection();
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Connection
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
     </Stack>
   );
 };

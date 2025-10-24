@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   AppShell,
   Group,
@@ -13,14 +13,24 @@ import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { openUrl as openExternalUrl } from '@tauri-apps/plugin-opener';
 import { listen } from '@tauri-apps/api/event';
+import { RefreshCw, FolderPlus, Upload } from 'lucide-react';
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+} from '@/components/ui/context-menu';
 import { useS3Browser } from './hooks/useS3Browser';
 import { ConnectionSidebar } from './components/ConnectionSidebar';
 import { CompactToolbar } from './components/CompactToolbar';
 import { ObjectListTable } from './components/ObjectListTable';
 import { ObjectThumb } from './components/ObjectThumb';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
+import { CreateFolderModal } from './components/CreateFolderModal';
+import { ConfirmModal } from './components/ConfirmModal';
 import { UploadProgressList } from './components/UploadProgressBar';
 import { notifications } from '@mantine/notifications';
+import { removeSavedConnection } from './utils/connectionManager';
 
 function App() {
   const {
@@ -54,10 +64,24 @@ function App() {
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [deletingFile, setDeletingFile] = useState(false);
 
+  // Create folder modal state
+  const [createFolderModalOpened, setCreateFolderModalOpened] = useState(false);
+
+  // Delete connection confirmation state
+  const [deleteConnectionModalOpened, setDeleteConnectionModalOpened] =
+    useState(false);
+  const [connectionToDelete, setConnectionToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
   // Upload progress with file names
   const [uploadFileNames, setUploadFileNames] = useState<Map<string, string>>(
     new Map()
   );
+
+  // File upload ref for context menu
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Listen for connection created event from connection form window
   useEffect(() => {
@@ -217,6 +241,62 @@ function App() {
     }
   }
 
+  // Handle file upload from context menu
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const uploadId = await uploadFile(file);
+      setUploadFileNames((prev) => new Map([...prev, [uploadId, file.name]]));
+      notifications.show({
+        message: `Uploaded: ${file.name}`,
+        color: 'green',
+        position: 'bottom-right',
+      });
+      fetchObjects();
+    } catch (err: any) {
+      notifications.show({
+        message: `Upload failed: ${err}`,
+        color: 'red',
+        position: 'bottom-right',
+      });
+    }
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Handle delete connection request
+  const handleRequestDeleteConnection = (
+    connectionId: string,
+    connectionName: string
+  ) => {
+    setConnectionToDelete({ id: connectionId, name: connectionName });
+    setDeleteConnectionModalOpened(true);
+  };
+
+  // Handle delete connection confirm
+  const handleDeleteConnectionConfirm = () => {
+    if (!connectionToDelete) return;
+
+    removeSavedConnection(connectionToDelete.id);
+    deleteConnectionFromState(connectionToDelete.id);
+
+    notifications.show({
+      message: `Connection "${connectionToDelete.name}" deleted`,
+      color: 'green',
+      position: 'bottom-right',
+    });
+
+    setDeleteConnectionModalOpened(false);
+    setConnectionToDelete(null);
+  };
+
   return (
     <AppShell navbar={{ width: 250, breakpoint: 'sm' }} padding={0}>
       {/* Left Sidebar */}
@@ -235,7 +315,7 @@ function App() {
           onSelectConnection={connectToSavedConnection}
           onSelectBucket={selectConnectionBucket}
           onRefreshBuckets={refreshConnectionBuckets}
-          onDeleteConnection={deleteConnectionFromState}
+          onRequestDeleteConnection={handleRequestDeleteConnection}
         />
       </AppShell.Navbar>
 
@@ -296,60 +376,90 @@ function App() {
               hasBucket={!!bucket}
             />
 
-            <Box style={{ flex: 1, overflow: 'auto' }} p="xs">
-              {loading ? (
-                <Center h="100%">
-                  <Loader type="dots" />
-                </Center>
-              ) : view === 'list' ? (
-                <ObjectListTable
-                  objects={objects}
-                  onEnterDir={(k) => setPrefix(k)}
-                  onDelete={handleDeleteRequest}
-                  onCopyUrl={copyObjectUrl}
-                  onPreviewExternal={previewInNewWindow}
-                />
-              ) : (
-                <>
-                  <Group justify="start" align="normal" gap={2}>
-                    {objects.map((o) => (
-                      <ObjectThumb
-                        key={o.key}
-                        obj={o}
-                        ensureObjectUrl={ensureObjectUrl}
-                        onPreview={(k, url) => {
-                          setPreviewTitle(k);
-                          setPreviewUrl(url);
-                        }}
-                        onDelete={handleDeleteRequest}
-                        onEnterDir={(k) => setPrefix(k)}
-                        onCopyUrl={copyObjectUrl}
-                        onPreviewExternal={previewInNewWindow}
-                      />
-                    ))}
-                  </Group>
-                  <Modal
-                    opened={!!previewUrl}
-                    onClose={() => setPreviewUrl(null)}
-                    title={previewTitle}
-                    size="xl"
-                    centered
-                  >
-                    {previewUrl && (
-                      <img
-                        src={previewUrl}
-                        alt={previewTitle}
-                        style={{
-                          width: '100%',
-                          maxHeight: 600,
-                          objectFit: 'contain',
-                        }}
-                      />
-                    )}
-                  </Modal>
-                </>
-              )}
-            </Box>
+            <ContextMenu>
+              <ContextMenuTrigger asChild>
+                <Box style={{ flex: 1, overflow: 'auto' }} p="xs">
+                  {loading ? (
+                    <Center h="100%">
+                      <Loader type="dots" />
+                    </Center>
+                  ) : view === 'list' ? (
+                    <ObjectListTable
+                      objects={objects}
+                      onEnterDir={(k) => setPrefix(k)}
+                      onDelete={handleDeleteRequest}
+                      onCopyUrl={copyObjectUrl}
+                      onPreviewExternal={previewInNewWindow}
+                    />
+                  ) : (
+                    <>
+                      <Group justify="start" align="normal" gap={2}>
+                        {objects.map((o) => (
+                          <ObjectThumb
+                            key={o.key}
+                            obj={o}
+                            ensureObjectUrl={ensureObjectUrl}
+                            onPreview={(k, url) => {
+                              setPreviewTitle(k);
+                              setPreviewUrl(url);
+                            }}
+                            onDelete={handleDeleteRequest}
+                            onEnterDir={(k) => setPrefix(k)}
+                            onCopyUrl={copyObjectUrl}
+                            onPreviewExternal={previewInNewWindow}
+                          />
+                        ))}
+                      </Group>
+                      <Modal
+                        opened={!!previewUrl}
+                        onClose={() => setPreviewUrl(null)}
+                        title={previewTitle}
+                        size="xl"
+                        centered
+                      >
+                        {previewUrl && (
+                          <img
+                            src={previewUrl}
+                            alt={previewTitle}
+                            style={{
+                              width: '100%',
+                              maxHeight: 600,
+                              objectFit: 'contain',
+                            }}
+                          />
+                        )}
+                      </Modal>
+                    </>
+                  )}
+                </Box>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem
+                  onClick={() => {
+                    fetchObjects();
+                  }}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Refresh
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={() => {
+                    setCreateFolderModalOpened(true);
+                  }}
+                >
+                  <FolderPlus className="mr-2 h-4 w-4" />
+                  New Folder
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={() => {
+                    fileInputRef.current?.click();
+                  }}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload File
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           </>
         ) : (
           <Center h="100%" style={{ flexDirection: 'column', gap: '1rem' }}>
@@ -371,6 +481,53 @@ function App() {
         onConfirm={handleDeleteConfirm}
         fileName={fileToDelete || ''}
         loading={deletingFile}
+      />
+
+      {/* Create Folder Modal */}
+      <CreateFolderModal
+        opened={createFolderModalOpened}
+        onClose={() => setCreateFolderModalOpened(false)}
+        onConfirm={async (name) => {
+          try {
+            await createFolder(name);
+            notifications.show({
+              message: `Folder created: ${name}`,
+              color: 'green',
+              position: 'bottom-right',
+            });
+            fetchObjects();
+            setCreateFolderModalOpened(false);
+          } catch (err: any) {
+            notifications.show({
+              message: `Create folder failed: ${err}`,
+              color: 'red',
+              position: 'bottom-right',
+            });
+          }
+        }}
+      />
+
+      {/* Delete Connection Confirmation Modal */}
+      <ConfirmModal
+        opened={deleteConnectionModalOpened}
+        onClose={() => {
+          setDeleteConnectionModalOpened(false);
+          setConnectionToDelete(null);
+        }}
+        onConfirm={handleDeleteConnectionConfirm}
+        title="Delete Connection"
+        message="Are you sure you want to delete this connection?"
+        itemName={connectionToDelete?.name || ''}
+        confirmLabel="Delete"
+        confirmColor="red"
+      />
+
+      {/* Hidden file input for context menu upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        style={{ display: 'none' }}
+        onChange={handleFileUpload}
       />
 
       {/* Upload Progress Display */}

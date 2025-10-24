@@ -1,5 +1,13 @@
 import React from 'react';
 import { ActionIcon, Group, Table } from '@mantine/core';
+import { Copy, Eye, Trash2 } from 'lucide-react';
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from '@/components/ui/context-menu';
 import { S3ObjectInfo } from '../types';
 import { humanFileSize, getFileName } from '../utils/common';
 import { IconTrash, IconCopy, IconEye } from '@tabler/icons-react';
@@ -21,97 +29,134 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
   onPreviewExternal,
 }) => {
   const rows = objects.map((o) => (
-    <Table.Tr
-      key={o.key}
-      style={{
-        cursor: o.is_dir ? 'pointer' : 'default',
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-        MozUserSelect: 'none',
-        msUserSelect: 'none',
-      }}
-      onClick={() => (o.is_dir ? onEnterDir(o.key) : undefined)}
-      onDoubleClick={() => (!o.is_dir ? onPreviewExternal(o.key) : undefined)}
-    >
-      <Table.Td style={{ width: '24px' }}>
-        {getFileIconWithProps(o.key, o.is_dir, {
-          size: 20,
-          color: 'var(--mantine-color-dimmed)',
-        })}
-      </Table.Td>
-      <Table.Td>
-        <div>
-          <div
-            style={{
-              fontWeight: 500,
-              color: o.is_dir
-                ? 'var(--mantine-color-blue-6)'
-                : 'var(--mantine-color-text)',
-            }}
-          >
-            {getFileName(o.key)}
-          </div>
-          {o.key !== getFileName(o.key) && (
-            <div
-              style={{
-                fontSize: '12px',
-                color: 'var(--mantine-color-dimmed)',
-                marginTop: '2px',
-              }}
-            >
-              {o.key.replace(`/${getFileName(o.key)}`, '') || '/'}
+    <ContextMenu key={o.key}>
+      <ContextMenuTrigger asChild>
+        <Table.Tr
+          style={{
+            cursor: o.is_dir ? 'pointer' : 'default',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            MozUserSelect: 'none',
+            msUserSelect: 'none',
+          }}
+          onClick={() => (o.is_dir ? onEnterDir(o.key) : undefined)}
+          onDoubleClick={() =>
+            !o.is_dir ? onPreviewExternal(o.key) : undefined
+          }
+        >
+          <Table.Td style={{ width: '24px' }}>
+            {getFileIconWithProps(o.key, o.is_dir, {
+              size: 20,
+              color: 'var(--mantine-color-dimmed)',
+            })}
+          </Table.Td>
+          <Table.Td>
+            <div>
+              <div
+                style={{
+                  fontWeight: 500,
+                  color: o.is_dir
+                    ? 'var(--mantine-color-blue-6)'
+                    : 'var(--mantine-color-text)',
+                }}
+              >
+                {getFileName(o.key)}
+              </div>
+              {o.key !== getFileName(o.key) && (
+                <div
+                  style={{
+                    fontSize: '12px',
+                    color: 'var(--mantine-color-dimmed)',
+                    marginTop: '2px',
+                  }}
+                >
+                  {o.key.replace(`/${getFileName(o.key)}`, '') || '/'}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </Table.Td>
-      <Table.Td>{o.is_dir ? '-' : humanFileSize(o.size)}</Table.Td>
-      <Table.Td>{o.last_modified ?? '-'}</Table.Td>
-      <Table.Td style={{ textAlign: 'center' }}>
+          </Table.Td>
+          <Table.Td>{o.is_dir ? '-' : humanFileSize(o.size)}</Table.Td>
+          <Table.Td>{o.last_modified ?? '-'}</Table.Td>
+          <Table.Td style={{ textAlign: 'center' }}>
+            {!o.is_dir && (
+              <Group gap="xs" justify="center">
+                <ActionIcon
+                  variant="light"
+                  color="blue"
+                  size="sm"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    await onCopyUrl(o.key);
+                  }}
+                  title="Copy URL"
+                  style={{ transition: 'all 0.2s ease' }}
+                >
+                  <IconCopy size={14} />
+                </ActionIcon>
+                <ActionIcon
+                  variant="light"
+                  color="grape"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPreviewExternal(o.key);
+                  }}
+                  title="Preview"
+                  style={{ transition: 'all 0.2s ease' }}
+                >
+                  <IconEye size={14} />
+                </ActionIcon>
+                <ActionIcon
+                  variant="light"
+                  color="red"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(o.key);
+                  }}
+                  title="Delete"
+                  style={{ transition: 'all 0.2s ease' }}
+                >
+                  <IconTrash size={14} />
+                </ActionIcon>
+              </Group>
+            )}
+          </Table.Td>
+        </Table.Tr>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
         {!o.is_dir && (
-          <Group gap="xs" justify="center">
-            <ActionIcon
-              variant="light"
-              color="blue"
-              size="sm"
-              onClick={async (e) => {
-                e.stopPropagation();
+          <>
+            <ContextMenuItem
+              onClick={async () => {
                 await onCopyUrl(o.key);
               }}
-              title="Copy URL"
-              style={{ transition: 'all 0.2s ease' }}
             >
-              <IconCopy size={14} />
-            </ActionIcon>
-            <ActionIcon
-              variant="light"
-              color="grape"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
+              <Copy className="mr-2 h-4 w-4" />
+              Copy URL
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => {
                 onPreviewExternal(o.key);
               }}
-              title="Preview"
-              style={{ transition: 'all 0.2s ease' }}
             >
-              <IconEye size={14} />
-            </ActionIcon>
-            <ActionIcon
-              variant="light"
-              color="red"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(o.key);
-              }}
-              title="Delete"
-              style={{ transition: 'all 0.2s ease' }}
-            >
-              <IconTrash size={14} />
-            </ActionIcon>
-          </Group>
+              <Eye className="mr-2 h-4 w-4" />
+              Preview
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+          </>
         )}
-      </Table.Td>
-    </Table.Tr>
+        <ContextMenuItem
+          variant="destructive"
+          onClick={() => {
+            onDelete(o.key);
+          }}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Delete
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   ));
 
   return (

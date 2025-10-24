@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.0.0](https://github.com/moonrailgun/s3-file-viewer/compare/v0.2.0...v1.0.0) (2025-10-24)
+
+### Features
+
+* add connection editing feature ([78d3e9b](https://github.com/moonrailgun/s3-file-viewer/commit/78d3e9b11383ecb1729ce72e3eba14fd0a76bb2e))
+* clear objects list when switching buckets in S3 browser ([a75e341](https://github.com/moonrailgun/s3-file-viewer/commit/a75e34193005d0b8e79e04b8449ac62fbde24538))
+* enhance context menu functionality and add modals for folder creation and connection deletion ([bd0ca75](https://github.com/moonrailgun/s3-file-viewer/commit/bd0ca759dfbc73f910f94cffd03bc53b1c251e84))
+* implement context menu for connection items and auto-collapse inactive connections ([9eafcd7](https://github.com/moonrailgun/s3-file-viewer/commit/9eafcd73df4cb7ee811f5d4633d2e65af307c380))
+
+### Document
+
+* add Vercel configuration and update documentation with download link and favicon ([93d794e](https://github.com/moonrailgun/s3-file-viewer/commit/93d794e7e32e8b8b0f378a0e6afb3d2f704b046f))
+* add website ([01d8fca](https://github.com/moonrailgun/s3-file-viewer/commit/01d8fca2443803250f09d28234c6799e8edb615f))
+
+### Others
+
+* intergate tailwindcss ([a3420e3](https://github.com/moonrailgun/s3-file-viewer/commit/a3420e30db10d0cf1827fe23f6096b61b62a6155))
+* redesign main page layout which should be more better for switch ([bc215e9](https://github.com/moonrailgun/s3-file-viewer/commit/bc215e96478b80e6b6fc429931f761fbc06b8f91))
+
 ## [0.2.0](https://github.com/moonrailgun/s3-file-viewer/compare/v0.1.6...v0.2.0) (2025-10-10)
 
 ### Features

@@ -8,6 +8,9 @@ hero:
   tagline: Supports AWS S3, MinIO, Cloudflare R2, and other S3-compatible storage services
   actions:
     - theme: brand
+      text: Download
+      link: https://github.com/moonrailgun/s3-file-viewer/releases
+    - theme: alt
       text: Configuration Guide
       link: /configuration-guide
     - theme: alt

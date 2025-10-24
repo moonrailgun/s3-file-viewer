@@ -5,8 +5,10 @@ export default defineConfig({
   title: 'S3 File Viewer',
   description:
     'A modern desktop application for browsing and managing S3-compatible object storage',
+  head: [['link', { rel: 'icon', type: 'image/png', href: '/favicon.png' }]],
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
+    logo: '/favicon.png',
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Configuration Guide', link: '/configuration-guide' },

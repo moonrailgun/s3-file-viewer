@@ -396,6 +396,7 @@ function App() {
           <>
             <CompactToolbar
               breadcrumbItems={breadcrumbItems}
+              bucketName={bucket}
               view={view}
               onChangeView={setView}
               onRefresh={fetchObjects}

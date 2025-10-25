@@ -13,12 +13,15 @@ import {
   IconUpload,
   IconLayoutList,
   IconLayoutGrid,
+  IconDatabase,
 } from '@tabler/icons-react';
 import { CreateFolderModal } from './CreateFolderModal';
 
 export type CompactToolbarProps = {
   // Breadcrumb navigation
   breadcrumbItems: React.ReactNode[];
+  // Current bucket name
+  bucketName?: string | null;
   // View mode
   view: string;
   onChangeView: (view: string) => void;
@@ -34,6 +37,7 @@ export type CompactToolbarProps = {
 
 export const CompactToolbar: React.FC<CompactToolbarProps> = ({
   breadcrumbItems,
+  bucketName,
   view,
   onChangeView,
   onRefresh,
@@ -80,12 +84,28 @@ export const CompactToolbar: React.FC<CompactToolbarProps> = ({
             'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))',
         }}
       >
-        {/* Left: Breadcrumbs */}
+        {/* Left: Bucket name and Breadcrumbs */}
         <Box style={{ flex: 1, minWidth: 0 }}>
-          {hasBucket && breadcrumbItems.length > 0 ? (
-            <Breadcrumbs separator="/" separatorMargin={4}>
-              {breadcrumbItems}
-            </Breadcrumbs>
+          {hasBucket && bucketName ? (
+            <Box className="flex items-center gap-2">
+              {/* Bucket name */}
+              <Group gap={6}>
+                <IconDatabase size={14} color="var(--mantine-color-blue-6)" />
+                <Text size="xs" fw={600} c="blue">
+                  {bucketName}
+                </Text>
+              </Group>
+              {/* Breadcrumbs */}
+              {breadcrumbItems.length > 0 ? (
+                <Breadcrumbs separator="/" separatorMargin={4}>
+                  {breadcrumbItems}
+                </Breadcrumbs>
+              ) : (
+                <Text size="sm" c="dimmed">
+                  /
+                </Text>
+              )}
+            </Box>
           ) : (
             <Text size="sm" c="dimmed">
               {hasBucket ? '/' : 'Please select a bucket'}

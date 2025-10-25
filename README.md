@@ -10,7 +10,6 @@ A Tauri + React based S3-compatible object storage browser that provides an intu
 - 📋 **Clipboard Integration** - One-click copy file URLs to clipboard
 - 🗂️ **Dual Views** - Switch between list view and thumbnail view
 - ⬆️ **File Upload** - Support for uploading files to S3
-<!-- - 📂 **Folder Operations** - Create and delete folders -->
 - 🌐 **S3 Compatible** - Support for AWS S3 and other S3-compatible storage services (like MinIO)
 - 🖥️ **Cross-Platform** - Support for Windows, macOS, and Linux
 

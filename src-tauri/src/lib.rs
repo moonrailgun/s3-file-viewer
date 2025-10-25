@@ -49,15 +49,12 @@ fn format_error_details<E: std::fmt::Display>(error: &E) -> String {
 #[derive(Clone)]
 struct AppState {
     s3_client: Arc<s3::Client>,
-    bucket_cache: Arc<tokio::sync::RwLock<Vec<String>>>,
 }
 
 #[derive(Debug, Error)]
 enum AppError {
     #[error("S3 error: {0}")]
     S3(String),
-    #[error("Invalid input: {0}")]
-    InvalidInput(String),
 }
 
 impl From<s3::error::SdkError<s3::operation::list_buckets::ListBucketsError>> for AppError {
@@ -147,7 +144,6 @@ async fn connect(
 
     let app_state = AppState {
         s3_client: Arc::new(client),
-        bucket_cache: Arc::new(tokio::sync::RwLock::new(Vec::new())),
     };
 
     println!("[connect] AppState created, acquiring lock...");

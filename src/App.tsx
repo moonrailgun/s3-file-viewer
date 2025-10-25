@@ -8,6 +8,7 @@ import {
   Loader,
   Text,
   Box,
+  Stack,
 } from '@mantine/core';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
@@ -21,6 +22,7 @@ import {
   ContextMenuItem,
 } from '@/components/ui/context-menu';
 import { useS3Browser } from './hooks/useS3Browser';
+import { useFileDrop } from './hooks/useFileDrop';
 import { ConnectionSidebar } from './components/ConnectionSidebar';
 import { CompactToolbar } from './components/CompactToolbar';
 import { ObjectListTable } from './components/ObjectListTable';
@@ -82,6 +84,45 @@ function App() {
 
   // File upload ref for context menu
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // File drag and drop handling
+  const { isDragging, dragHandlers } = useFileDrop({
+    onFilesDropped: async (files) => {
+      if (!bucket) {
+        notifications.show({
+          message: 'Please select a bucket first',
+          color: 'orange',
+          position: 'bottom-right',
+        });
+        return;
+      }
+
+      // Upload all files
+      for (const file of files) {
+        try {
+          const uploadId = await uploadFile(file);
+          setUploadFileNames(
+            (prev) => new Map([...prev, [uploadId, file.name]])
+          );
+          notifications.show({
+            message: `Uploaded: ${file.name}`,
+            color: 'green',
+            position: 'bottom-right',
+          });
+        } catch (err: any) {
+          notifications.show({
+            message: `Upload failed for ${file.name}: ${err}`,
+            color: 'red',
+            position: 'bottom-right',
+          });
+        }
+      }
+
+      // Refresh objects list after all uploads
+      fetchObjects();
+    },
+    enabled: !!bucket,
+  });
 
   // Listen for connection created event from connection form window
   useEffect(() => {
@@ -401,7 +442,40 @@ function App() {
 
             <ContextMenu>
               <ContextMenuTrigger asChild>
-                <Box style={{ flex: 1, overflow: 'auto' }} p="xs">
+                <Box
+                  style={{ flex: 1, overflow: 'auto', position: 'relative' }}
+                  p="xs"
+                  {...dragHandlers}
+                >
+                  {/* Drag and drop overlay */}
+                  {isDragging && (
+                    <Box
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        backdropFilter: 'blur(2px)',
+                        border: '3px dashed var(--mantine-color-blue-6)',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 999,
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      <Stack align="center" gap="md">
+                        <Upload size={48} color="var(--mantine-color-blue-6)" />
+                        <Text size="xl" fw={600} c="blue">
+                          拖拽文件到此处上传
+                        </Text>
+                      </Stack>
+                    </Box>
+                  )}
+
                   {loading ? (
                     <Center h="100%">
                       <Loader type="dots" />

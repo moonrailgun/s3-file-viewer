@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { Group, Stack, Text, ActionIcon, Box } from '@mantine/core';
 import { useInViewport } from 'ahooks';
 import { IconCopy, IconEye, IconTrash } from '@tabler/icons-react';
-import { Copy, Eye, Trash2 } from 'lucide-react';
+import { Copy, Eye, Trash2, Play } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -14,11 +14,13 @@ import { S3ObjectInfo } from '../types';
 import {
   humanFileSize,
   isImageKey,
+  isVideoKey,
   getFileType,
   getFileName,
 } from '../utils/common';
 import { getFileIconWithProps } from '../utils/icons';
 import { ImagePreview } from './ImagePreview';
+import { VideoPreview } from './VideoPreview';
 
 export type ObjectThumbProps = {
   obj: S3ObjectInfo;
@@ -129,6 +131,66 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
                   cursor: 'pointer',
                 }}
               />
+            </Box>
+          ) : isVideoKey(obj.key) ? (
+            <Box
+              ref={imgRef}
+              style={{
+                width: '100%',
+                height: 140,
+                position: 'relative',
+                overflow: 'hidden',
+                borderRadius: 6,
+              }}
+            >
+              <VideoPreview
+                fileKey={obj.key}
+                ensureObjectUrl={ensureObjectUrl}
+                style={{
+                  width: '100%',
+                  height: 140,
+                  objectFit: 'cover',
+                  borderRadius: 6,
+                  background: 'var(--mantine-color-body)',
+                }}
+                controls={false}
+                muted
+              />
+              {/* Play button overlay */}
+              <Box
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  pointerEvents: 'none',
+                }}
+              >
+                <Box
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: '50%',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Play
+                    size={24}
+                    style={{ marginLeft: 4 }}
+                    color="var(--mantine-color-blue-6)"
+                  />
+                </Box>
+              </Box>
             </Box>
           ) : (
             <Box

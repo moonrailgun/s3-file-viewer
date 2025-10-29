@@ -10,9 +10,15 @@ import {
 } from '@mantine/core';
 import { X, Copy, Eye, Trash2 } from 'lucide-react';
 import { S3ObjectInfo } from '../types';
-import { humanFileSize, getFileName, isImageKey } from '../utils/common';
+import {
+  humanFileSize,
+  getFileName,
+  isImageKey,
+  isVideoKey,
+} from '../utils/common';
 import { getFileIconWithProps } from '../utils/icons';
 import { ImagePreview } from './ImagePreview';
+import { VideoPreview } from './VideoPreview';
 
 export type FileDetailsSidebarProps = {
   file: S3ObjectInfo | null;
@@ -99,6 +105,14 @@ export const FileDetailsSidebar: React.FC<FileDetailsSidebarProps> = ({
                   onImagePreview?.(file.key, url);
                 }
               }}
+            />
+          ) : isVideoKey(file.key) ? (
+            // Show video player for videos
+            <VideoPreview
+              fileKey={file.key}
+              ensureObjectUrl={ensureObjectUrl}
+              className="max-h-[300px] w-full rounded-lg border border-solid border-[light-dark(var(--mantine-color-gray-3),var(--mantine-color-dark-4))] bg-[var(--mantine-color-body)]"
+              controls
             />
           ) : (
             // Show icon for other file types

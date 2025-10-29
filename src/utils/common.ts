@@ -12,6 +12,10 @@ export function isImageKey(key: string) {
   return /\.(png|jpe?g|gif|webp|bmp|svg|avif|heic|heif)$/i.test(key);
 }
 
+export function isVideoKey(key: string) {
+  return /\.(mp4|avi|mov|wmv|flv|webm|mkv|m4v|3gp|ogv)$/i.test(key);
+}
+
 export function getFileType(
   key: string
 ): 'image' | 'document' | 'video' | 'audio' | 'archive' | 'code' | 'other' {

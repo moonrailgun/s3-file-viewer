@@ -31,8 +31,10 @@ import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { CreateFolderModal } from './components/CreateFolderModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { UploadProgressList } from './components/UploadProgressBar';
+import { FileDetailsSidebar } from './components/FileDetailsSidebar';
 import { notifications } from '@mantine/notifications';
 import { removeSavedConnection } from './utils/connectionManager';
+import type { S3ObjectInfo } from './types';
 
 function App() {
   const {
@@ -60,6 +62,9 @@ function App() {
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState<string>('');
+
+  // Selected file for details sidebar
+  const [selectedFile, setSelectedFile] = useState<S3ObjectInfo | null>(null);
 
   // Delete confirmation state
   const [deleteModalOpened, setDeleteModalOpened] = useState(false);
@@ -145,7 +150,14 @@ function App() {
     const parts = (prefix || '').replace(/\/+$/, '').split('/').filter(Boolean);
     const items: React.ReactNode[] = [];
     items.push(
-      <Anchor key="/" onClick={() => setPrefix('')} size="sm">
+      <Anchor
+        key="/"
+        onClick={() => {
+          setPrefix('');
+          setSelectedFile(null);
+        }}
+        size="sm"
+      >
         /
       </Anchor>
     );
@@ -155,7 +167,14 @@ function App() {
       const target = `${acc}/`;
 
       items.push(
-        <Anchor key={acc} onClick={() => setPrefix(target)} size="sm">
+        <Anchor
+          key={acc}
+          onClick={() => {
+            setPrefix(target);
+            setSelectedFile(null);
+          }}
+          size="sm"
+        >
           {part}
         </Anchor>
       );
@@ -334,6 +353,11 @@ function App() {
     }
   };
 
+  const handleImagePreview = (key: string, url: string) => {
+    setPreviewTitle(key);
+    setPreviewUrl(url);
+  };
+
   // Handle delete connection request
   const handleRequestDeleteConnection = (
     connectionId: string,
@@ -361,7 +385,15 @@ function App() {
   };
 
   return (
-    <AppShell navbar={{ width: 250, breakpoint: 'sm' }} padding={0}>
+    <AppShell
+      navbar={{ width: 250, breakpoint: 'sm' }}
+      aside={{
+        width: 320,
+        breakpoint: 'md',
+        collapsed: { mobile: !selectedFile, desktop: !selectedFile },
+      }}
+      padding={0}
+    >
       {/* Left Sidebar */}
       <AppShell.Navbar
         style={{
@@ -399,7 +431,10 @@ function App() {
               bucketName={bucket}
               view={view}
               onChangeView={setView}
-              onRefresh={fetchObjects}
+              onRefresh={() => {
+                fetchObjects();
+                setSelectedFile(null);
+              }}
               onCreateFolder={async (name) => {
                 try {
                   await createFolder(name);
@@ -484,10 +519,15 @@ function App() {
                   ) : view === 'list' ? (
                     <ObjectListTable
                       objects={objects}
-                      onEnterDir={(k) => setPrefix(k)}
+                      onEnterDir={(k) => {
+                        setPrefix(k);
+                        setSelectedFile(null);
+                      }}
                       onDelete={handleDeleteRequest}
                       onCopyUrl={copyObjectUrl}
                       onPreviewExternal={previewInNewWindow}
+                      onSelectFile={setSelectedFile}
+                      selectedFileKey={selectedFile?.key}
                     />
                   ) : (
                     <>
@@ -497,14 +537,15 @@ function App() {
                             key={o.key}
                             obj={o}
                             ensureObjectUrl={ensureObjectUrl}
-                            onPreview={(k, url) => {
-                              setPreviewTitle(k);
-                              setPreviewUrl(url);
-                            }}
                             onDelete={handleDeleteRequest}
-                            onEnterDir={(k) => setPrefix(k)}
+                            onEnterDir={(k) => {
+                              setPrefix(k);
+                              setSelectedFile(null);
+                            }}
                             onCopyUrl={copyObjectUrl}
                             onPreviewExternal={previewInNewWindow}
+                            onSelectFile={setSelectedFile}
+                            selectedFileKey={selectedFile?.key}
                           />
                         ))}
                       </Group>
@@ -535,6 +576,7 @@ function App() {
                 <ContextMenuItem
                   onClick={() => {
                     fetchObjects();
+                    setSelectedFile(null);
                   }}
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />
@@ -571,6 +613,27 @@ function App() {
           </Center>
         )}
       </AppShell.Main>
+
+      {/* Right Sidebar - File Details */}
+      <AppShell.Aside
+        style={{
+          borderLeft:
+            '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
+        }}
+      >
+        <FileDetailsSidebar
+          file={selectedFile}
+          onClose={() => setSelectedFile(null)}
+          onCopyUrl={copyObjectUrl}
+          onPreview={previewInNewWindow}
+          onDelete={(key) => {
+            handleDeleteRequest(key);
+            setSelectedFile(null);
+          }}
+          onImagePreview={handleImagePreview}
+          ensureObjectUrl={ensureObjectUrl}
+        />
+      </AppShell.Aside>
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmModal

@@ -19,6 +19,8 @@ export type ObjectListTableProps = {
   onDelete: (key: string) => void;
   onCopyUrl: (key: string) => void | Promise<void>;
   onPreviewExternal: (key: string) => void | Promise<void>;
+  onSelectFile?: (file: S3ObjectInfo) => void;
+  selectedFileKey?: string;
 };
 
 export const ObjectListTable: React.FC<ObjectListTableProps> = ({
@@ -27,19 +29,31 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
   onDelete,
   onCopyUrl,
   onPreviewExternal,
+  onSelectFile,
+  selectedFileKey,
 }) => {
   const rows = objects.map((o) => (
     <ContextMenu key={o.key}>
       <ContextMenuTrigger asChild>
         <Table.Tr
           style={{
-            cursor: o.is_dir ? 'pointer' : 'default',
+            cursor: 'pointer',
             userSelect: 'none',
             WebkitUserSelect: 'none',
             MozUserSelect: 'none',
             msUserSelect: 'none',
+            backgroundColor:
+              selectedFileKey === o.key
+                ? 'light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5))'
+                : undefined,
           }}
-          onClick={() => (o.is_dir ? onEnterDir(o.key) : undefined)}
+          onClick={() => {
+            if (o.is_dir) {
+              onEnterDir(o.key);
+            } else if (onSelectFile) {
+              onSelectFile(o);
+            }
+          }}
           onDoubleClick={() =>
             !o.is_dir ? onPreviewExternal(o.key) : undefined
           }

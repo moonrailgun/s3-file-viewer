@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Group, Stack, Text, ActionIcon, Box } from '@mantine/core';
 import { useInViewport } from 'ahooks';
 import { IconCopy, IconEye, IconTrash } from '@tabler/icons-react';
@@ -18,49 +18,34 @@ import {
   getFileName,
 } from '../utils/common';
 import { getFileIconWithProps } from '../utils/icons';
+import { ImagePreview } from './ImagePreview';
 
 export type ObjectThumbProps = {
   obj: S3ObjectInfo;
   ensureObjectUrl: (key: string) => Promise<string | undefined>;
-  onPreview: (key: string, url: string) => void;
   onDelete: (key: string) => void;
   onEnterDir: (key: string) => void;
   onCopyUrl: (key: string) => void | Promise<void>;
   onPreviewExternal: (key: string) => void | Promise<void>;
+  onSelectFile?: (file: S3ObjectInfo) => void;
+  selectedFileKey?: string;
 };
 
 export const ObjectThumb: React.FC<ObjectThumbProps> = ({
   obj,
   ensureObjectUrl,
-  onPreview,
   onDelete,
   onEnterDir,
   onCopyUrl,
   onPreviewExternal,
+  onSelectFile,
+  selectedFileKey,
 }) => {
-  const imgRef = useRef<HTMLImageElement | null>(null);
+  const imgRef = useRef<HTMLDivElement | null>(null);
   const [inView] = useInViewport(imgRef);
 
   // Get file icon props
   const iconProps = { size: 48, color: 'var(--mantine-color-dimmed)' };
-
-  useEffect(() => {
-    (async () => {
-      if (
-        !obj.is_dir &&
-        isImageKey(obj.key) &&
-        inView &&
-        imgRef.current &&
-        !imgRef.current.dataset.loaded
-      ) {
-        const url = await ensureObjectUrl(obj.key);
-        if (url && imgRef.current) {
-          imgRef.current.src = url;
-          imgRef.current.dataset.loaded = '1';
-        }
-      }
-    })();
-  }, [inView, obj.key]);
 
   const borderColor =
     'light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))';
@@ -73,11 +58,14 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
           p="xs"
           gap="xs"
           style={{
-            border: `1px solid ${borderColor}`,
+            border: `2px solid ${selectedFileKey === obj.key ? hoverBorderColor : borderColor}`,
             borderRadius: 12,
             width: 220,
-            cursor: obj.is_dir ? 'pointer' : 'default',
-            background: 'var(--mantine-color-body)',
+            cursor: 'pointer',
+            background:
+              selectedFileKey === obj.key
+                ? 'light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5))'
+                : 'var(--mantine-color-body)',
             transition: 'all 0.2s ease',
             userSelect: 'none',
             WebkitUserSelect: 'none',
@@ -87,6 +75,8 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
           onClick={() => {
             if (obj.is_dir) {
               onEnterDir(obj.key);
+            } else if (onSelectFile) {
+              onSelectFile(obj);
             }
           }}
           onDoubleClick={() => {
@@ -123,26 +113,23 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
               {getFileIconWithProps(obj.key, obj.is_dir, iconProps)}
             </Box>
           ) : isImageKey(obj.key) ? (
-            <img
-              ref={imgRef}
-              alt={obj.key}
-              style={{
-                width: '100%',
-                height: 140,
-                objectFit: 'cover',
-                borderRadius: 6,
-                background: 'var(--mantine-color-body)',
-                cursor: 'pointer',
-              }}
-              onError={async (e) => {
-                const url = await ensureObjectUrl(obj.key);
-                if (url) (e.currentTarget as HTMLImageElement).src = url;
-              }}
-              onClick={async () => {
-                const url = await ensureObjectUrl(obj.key);
-                if (url) onPreview(obj.key, url);
-              }}
-            />
+            <Box ref={imgRef} style={{ width: '100%', height: 140 }}>
+              <ImagePreview
+                fileKey={obj.key}
+                alt={obj.key}
+                ensureObjectUrl={ensureObjectUrl}
+                lazy={true}
+                inView={inView}
+                style={{
+                  width: '100%',
+                  height: 140,
+                  objectFit: 'cover',
+                  borderRadius: 6,
+                  background: 'var(--mantine-color-body)',
+                  cursor: 'pointer',
+                }}
+              />
+            </Box>
           ) : (
             <Box
               style={{

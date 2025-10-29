@@ -1,39 +1,25 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
-import {
-  AppShell,
-  Group,
-  Anchor,
-  Modal,
-  Center,
-  Loader,
-  Text,
-  Box,
-  Stack,
-} from '@mantine/core';
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import { openUrl as openExternalUrl } from '@tauri-apps/plugin-opener';
-import { listen } from '@tauri-apps/api/event';
-import { RefreshCw, FolderPlus, Upload } from 'lucide-react';
-import {
-  ContextMenu,
-  ContextMenuTrigger,
-  ContextMenuContent,
-  ContextMenuItem,
-} from '@/components/ui/context-menu';
+import { useState, useRef, useCallback } from 'react';
+import { AppShell, Modal } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { useS3Browser } from './hooks/useS3Browser';
 import { useFileDrop } from './hooks/useFileDrop';
+import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
+import { useFileOperations } from './hooks/useFileOperations';
+import { useConnectionOperations } from './hooks/useConnectionOperations';
+import { useConnectionEventListener } from './hooks/useConnectionEventListener';
+import { useBreadcrumbs } from './hooks/useBreadcrumbs.tsx';
+import {
+  openConnectionForm,
+  openEditConnectionForm,
+} from './utils/connectionWindow';
 import { ConnectionSidebar } from './components/ConnectionSidebar';
 import { CompactToolbar } from './components/CompactToolbar';
-import { ObjectListTable } from './components/ObjectListTable';
-import { ObjectThumb } from './components/ObjectThumb';
-import { DeleteConfirmModal } from './components/DeleteConfirmModal';
-import { CreateFolderModal } from './components/CreateFolderModal';
-import { ConfirmModal } from './components/ConfirmModal';
+import { MainContentArea } from './components/MainContentArea';
+import { EmptyState } from './components/EmptyState';
+import { ContextMenuWrapper } from './components/ContextMenuWrapper';
+import { AppModals } from './components/AppModals';
 import { UploadProgressList } from './components/UploadProgressBar';
 import { FileDetailsSidebar } from './components/FileDetailsSidebar';
-import { notifications } from '@mantine/notifications';
-import { removeSavedConnection } from './utils/connectionManager';
 import type { S3ObjectInfo } from './types';
 
 function App() {
@@ -60,38 +46,28 @@ function App() {
     deleteConnectionFromState,
   } = useS3Browser();
 
+  // Local state
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState<string>('');
-
-  // Selected file for details sidebar
   const [selectedFile, setSelectedFile] = useState<S3ObjectInfo | null>(null);
-
-  // Delete confirmation state
-  const [deleteModalOpened, setDeleteModalOpened] = useState(false);
-  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
-  const [deletingFile, setDeletingFile] = useState(false);
-
-  // Create folder modal state
   const [createFolderModalOpened, setCreateFolderModalOpened] = useState(false);
 
-  // Delete connection confirmation state
-  const [deleteConnectionModalOpened, setDeleteConnectionModalOpened] =
-    useState(false);
-  const [connectionToDelete, setConnectionToDelete] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
-
-  // Upload progress with file names
-  const [uploadFileNames, setUploadFileNames] = useState<Map<string, string>>(
-    new Map()
-  );
-
-  // File upload ref for context menu
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Grid container ref for calculating columns
+  // Grid container ref for keyboard navigation
   const gridContainerRef = useRef<HTMLDivElement>(null);
+
+  // File operations hook
+  const fileOps = useFileOperations({
+    ensureObjectUrl,
+    deleteObject,
+    createFolder,
+    uploadFile,
+    fetchObjects,
+  });
+
+  // Connection operations hook
+  const connectionOps = useConnectionOperations({
+    deleteConnectionFromState,
+  });
 
   // File drag and drop handling
   const { isDragging, dragHandlers } = useFileDrop({
@@ -104,406 +80,63 @@ function App() {
         });
         return;
       }
-
-      // Upload all files
-      for (const file of files) {
-        try {
-          const uploadId = await uploadFile(file);
-          setUploadFileNames(
-            (prev) => new Map([...prev, [uploadId, file.name]])
-          );
-          notifications.show({
-            message: `Uploaded: ${file.name}`,
-            color: 'green',
-            position: 'bottom-right',
-          });
-        } catch (err: any) {
-          notifications.show({
-            message: `Upload failed for ${file.name}: ${err}`,
-            color: 'red',
-            position: 'bottom-right',
-          });
-        }
-      }
-
-      // Refresh objects list after all uploads
-      fetchObjects();
+      await fileOps.handleUploadFiles(files);
     },
     enabled: !!bucket,
   });
 
   // Listen for connection created event from connection form window
-  useEffect(() => {
-    const unlisten = listen('connection-created', (event: any) => {
-      const { connectionId } = event.payload;
-      if (connectionId) {
-        // Trigger a reconnection or refresh to pick up the new connection
-        setTimeout(() => {
-          connectToSavedConnection(connectionId);
-        }, 100);
-      }
-    });
+  useConnectionEventListener(connectToSavedConnection);
 
-    return () => {
-      unlisten.then((fn) => fn());
-    };
-  }, []);
-
-  // Keyboard navigation support
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip if there's no bucket or objects, or if modals are open
-      if (
-        !bucket ||
-        objects.length === 0 ||
-        deleteModalOpened ||
-        createFolderModalOpened ||
-        deleteConnectionModalOpened
-      ) {
-        return;
-      }
-
-      // Skip if user is typing in an input/textarea
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) {
-        return;
-      }
-
-      const currentIndex = selectedFile
-        ? objects.findIndex((o) => o.key === selectedFile.key)
-        : -1;
-
-      // Handle Enter key - open folder or preview file
-      if (e.key === 'Enter') {
-        if (selectedFile) {
-          e.preventDefault();
-          if (selectedFile.is_dir) {
-            setPrefix(selectedFile.key);
-            setSelectedFile(null);
-          } else {
-            previewInNewWindow(selectedFile.key);
-          }
-        }
-        return;
-      }
-
-      // Navigation logic based on view mode
-      if (view === 'list') {
-        // List view: up/down navigation
-        if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          if (currentIndex > 0) {
-            setSelectedFile(objects[currentIndex - 1]);
-          } else if (currentIndex === -1 && objects.length > 0) {
-            setSelectedFile(objects[0]);
-          }
-        } else if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          if (currentIndex < objects.length - 1) {
-            setSelectedFile(objects[currentIndex + 1]);
-          } else if (currentIndex === -1 && objects.length > 0) {
-            setSelectedFile(objects[0]);
-          }
-        }
-      } else {
-        // Grid view: 4-directional navigation
-        // Calculate columns based on container width
-        const containerWidth = gridContainerRef.current?.clientWidth || 0;
-        const itemWidth = 220; // ObjectThumb width
-        const gap = 2; // gap value from Group
-        const columns = Math.max(
-          1,
-          Math.floor(containerWidth / (itemWidth + gap))
-        );
-
-        if (e.key === 'ArrowLeft') {
-          e.preventDefault();
-          if (currentIndex > 0) {
-            setSelectedFile(objects[currentIndex - 1]);
-          } else if (currentIndex === -1 && objects.length > 0) {
-            setSelectedFile(objects[0]);
-          }
-        } else if (e.key === 'ArrowRight') {
-          e.preventDefault();
-          if (currentIndex < objects.length - 1) {
-            setSelectedFile(objects[currentIndex + 1]);
-          } else if (currentIndex === -1 && objects.length > 0) {
-            setSelectedFile(objects[0]);
-          }
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          const newIndex = currentIndex - columns;
-          if (newIndex >= 0) {
-            setSelectedFile(objects[newIndex]);
-          } else if (currentIndex === -1 && objects.length > 0) {
-            setSelectedFile(objects[0]);
-          }
-        } else if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          const newIndex = currentIndex + columns;
-          if (newIndex < objects.length) {
-            setSelectedFile(objects[newIndex]);
-          } else if (currentIndex === -1 && objects.length > 0) {
-            setSelectedFile(objects[0]);
-          }
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
+  // Keyboard navigation
+  useKeyboardNavigation({
     bucket,
     objects,
     selectedFile,
     view,
-    deleteModalOpened,
-    createFolderModalOpened,
-    deleteConnectionModalOpened,
-    setPrefix,
-  ]);
+    modalsOpen:
+      fileOps.deleteModalOpened ||
+      createFolderModalOpened ||
+      connectionOps.deleteConnectionModalOpened,
+    gridContainerRef,
+    onSetSelectedFile: setSelectedFile,
+    onEnterFolder: (key) => {
+      setPrefix(key);
+      setSelectedFile(null);
+    },
+    onPreviewFile: fileOps.previewInNewWindow,
+  });
 
-  const breadcrumbItems = useMemo(() => {
-    const parts = (prefix || '').replace(/\/+$/, '').split('/').filter(Boolean);
-    const items: React.ReactNode[] = [];
-    items.push(
-      <Anchor
-        key="/"
-        onClick={() => {
-          setPrefix('');
-          setSelectedFile(null);
-        }}
-        size="sm"
-      >
-        /
-      </Anchor>
-    );
-    let acc = '';
-    parts.forEach((part) => {
-      acc = acc ? `${acc}/${part}` : part;
-      const target = `${acc}/`;
+  // Breadcrumbs navigation
+  const breadcrumbItems = useBreadcrumbs(prefix || '', (path: string) => {
+    setPrefix(path);
+    setSelectedFile(null);
+  });
 
-      items.push(
-        <Anchor
-          key={acc}
-          onClick={() => {
-            setPrefix(target);
-            setSelectedFile(null);
-          }}
-          size="sm"
-        >
-          {part}
-        </Anchor>
-      );
-    });
-    return items;
-  }, [prefix]);
-
-  const handleCreateConnection = () => {
-    // Open connection form in new window
-    const win = new WebviewWindow('connection-form', {
-      url: '/src/windows/connection-form.html',
-      title: 'New Connection',
-      width: 450,
-      height: 560,
-      center: true,
-      resizable: false,
-      decorations: true,
-    });
-
-    win.once('tauri://error', (e) => {
-      console.error('Connection form window error:', e);
-      notifications.show({
-        message: `Cannot open connection window: ${e.payload}`,
-        color: 'red',
-        position: 'bottom-right',
-      });
-    });
-  };
-
-  const handleEditConnection = (connectionId: string) => {
-    // Open connection form in edit mode with connection ID
-    const win = new WebviewWindow(`connection-form-${Date.now()}`, {
-      url: `/src/windows/connection-form.html?connectionId=${connectionId}`,
-      title: 'Edit Connection',
-      width: 450,
-      height: 560,
-      center: true,
-      resizable: false,
-      decorations: true,
-    });
-
-    win.once('tauri://error', (e) => {
-      console.error('Connection form window error:', e);
-      notifications.show({
-        message: `Cannot open connection window: ${e.payload}`,
-        color: 'red',
-        position: 'bottom-right',
-      });
-    });
-  };
-
-  async function copyObjectUrl(key: string) {
-    try {
-      const url = await ensureObjectUrl(key);
-      if (!url) {
-        throw new Error('no url');
-      }
-      await writeText(url);
-      notifications.show({
-        message: 'URL copied to clipboard',
-        color: 'green',
-        position: 'bottom-right',
-      });
-    } catch (e) {
-      notifications.show({
-        message: `Copy failed: ${e instanceof Error ? e.message : 'Unknown error'}`,
-        color: 'red',
-        position: 'bottom-right',
-      });
-    }
-  }
-
-  async function previewInNewWindow(key: string) {
-    try {
-      const url = await ensureObjectUrl(key);
-      if (!url) {
-        throw new Error('no url');
-      }
-
-      try {
-        const label = `preview-${Date.now()}`;
-        const win = new WebviewWindow(label, {
-          url,
-          title: key,
-          width: 1200,
-          height: 800,
-          center: true,
-          resizable: true,
-          decorations: true,
-        });
-
-        win.once('tauri://error', (e) => {
-          console.error('Preview window error:', e);
-          notifications.show({
-            message: `Preview window error: ${e.payload}`,
-            color: 'red',
-            position: 'bottom-right',
-          });
-        });
-      } catch (webviewError) {
-        console.error('Webview creation failed:', webviewError);
-        await openExternalUrl(url);
-      }
-    } catch (e) {
-      console.error('Preview failed:', e);
-      notifications.show({
-        message: `Preview failed: ${e instanceof Error ? e.message : 'Unknown error'}`,
-        color: 'red',
-        position: 'bottom-right',
-      });
-    }
-  }
-
-  // Handle delete confirmation
-  function handleDeleteRequest(key: string) {
-    setFileToDelete(key);
-    setDeleteModalOpened(true);
-  }
-
-  function handleDeleteCancel() {
-    setDeleteModalOpened(false);
-    setFileToDelete(null);
-    setDeletingFile(false);
-  }
-
-  async function handleDeleteConfirm() {
-    if (!fileToDelete) return;
-
-    try {
-      setDeletingFile(true);
-      await deleteObject(fileToDelete);
-      notifications.show({
-        message: `Deleted ${fileToDelete}`,
-        color: 'green',
-        position: 'bottom-right',
-      });
-      fetchObjects();
-      handleDeleteCancel();
-    } catch (err: any) {
-      notifications.show({
-        message: `Delete failed: ${err}`,
-        color: 'red',
-        position: 'bottom-right',
-      });
-      setDeletingFile(false);
-    }
-  }
-
-  // Handle file upload from context menu
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const uploadId = await uploadFile(file);
-      setUploadFileNames((prev) => new Map([...prev, [uploadId, file.name]]));
-      notifications.show({
-        message: `Uploaded: ${file.name}`,
-        color: 'green',
-        position: 'bottom-right',
-      });
-      fetchObjects();
-    } catch (err: any) {
-      notifications.show({
-        message: `Upload failed: ${err}`,
-        color: 'red',
-        position: 'bottom-right',
-      });
-    }
-
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleImagePreview = (key: string, url: string) => {
+  // Handle image preview in modal
+  const handleImagePreview = useCallback((key: string, url: string) => {
     setPreviewTitle(key);
     setPreviewUrl(url);
-  };
+  }, []);
 
-  // Handle delete connection request
-  const handleRequestDeleteConnection = (
-    connectionId: string,
-    connectionName: string
-  ) => {
-    setConnectionToDelete({ id: connectionId, name: connectionName });
-    setDeleteConnectionModalOpened(true);
-  };
+  // Handle folder creation from toolbar
+  const handleToolbarCreateFolder = useCallback(
+    async (name: string) => {
+      const success = await fileOps.handleCreateFolder(name);
+      if (success) {
+        // Success notification already shown in handleCreateFolder
+      }
+    },
+    [fileOps]
+  );
 
-  // Handle delete connection confirm
-  const handleDeleteConnectionConfirm = () => {
-    if (!connectionToDelete) return;
-
-    removeSavedConnection(connectionToDelete.id);
-    deleteConnectionFromState(connectionToDelete.id);
-
-    notifications.show({
-      message: `Connection "${connectionToDelete.name}" deleted`,
-      color: 'green',
-      position: 'bottom-right',
-    });
-
-    setDeleteConnectionModalOpened(false);
-    setConnectionToDelete(null);
-  };
+  // Handle file upload from toolbar
+  const handleToolbarUpload = useCallback(
+    async (file: File) => {
+      await fileOps.handleUploadFiles([file]);
+    },
+    [fileOps]
+  );
 
   return (
     <AppShell
@@ -527,12 +160,14 @@ function App() {
           selectedBucket={bucket}
           connectionBuckets={connectionBuckets}
           connectionLoading={connectionLoading}
-          onCreateConnection={handleCreateConnection}
+          onCreateConnection={openConnectionForm}
           onSelectConnection={connectToSavedConnection}
           onSelectBucket={selectConnectionBucket}
           onRefreshBuckets={refreshConnectionBuckets}
-          onEditConnection={handleEditConnection}
-          onRequestDeleteConnection={handleRequestDeleteConnection}
+          onEditConnection={openEditConnectionForm}
+          onRequestDeleteConnection={
+            connectionOps.handleRequestDeleteConnection
+          }
         />
       </AppShell.Navbar>
 
@@ -556,187 +191,63 @@ function App() {
                 fetchObjects();
                 setSelectedFile(null);
               }}
-              onCreateFolder={async (name) => {
-                try {
-                  await createFolder(name);
-                  notifications.show({
-                    message: `Folder created: ${name}`,
-                    color: 'green',
-                    position: 'bottom-right',
-                  });
-                  fetchObjects();
-                } catch (err: any) {
-                  notifications.show({
-                    message: `Create folder failed: ${err}`,
-                    color: 'red',
-                    position: 'bottom-right',
-                  });
-                }
-              }}
-              onUpload={async (file) => {
-                try {
-                  const uploadId = await uploadFile(file);
-                  setUploadFileNames(
-                    (prev) => new Map([...prev, [uploadId, file.name]])
-                  );
-                  notifications.show({
-                    message: `Uploaded: ${file.name}`,
-                    color: 'green',
-                    position: 'bottom-right',
-                  });
-                  fetchObjects();
-                } catch (err: any) {
-                  notifications.show({
-                    message: `Upload failed: ${err}`,
-                    color: 'red',
-                    position: 'bottom-right',
-                  });
-                }
-              }}
+              onCreateFolder={handleToolbarCreateFolder}
+              onUpload={handleToolbarUpload}
               loading={loading}
               hasBucket={!!bucket}
             />
 
-            <ContextMenu>
-              <ContextMenuTrigger asChild>
-                <Box
-                  style={{ flex: 1, overflow: 'auto', position: 'relative' }}
-                  p="xs"
-                  {...dragHandlers}
-                >
-                  {/* Drag and drop overlay */}
-                  {isDragging && (
-                    <Box
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                        backdropFilter: 'blur(2px)',
-                        border: '3px dashed var(--mantine-color-blue-6)',
-                        borderRadius: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 999,
-                        pointerEvents: 'none',
-                      }}
-                    >
-                      <Stack align="center" gap="md">
-                        <Upload size={48} color="var(--mantine-color-blue-6)" />
-                        <Text size="xl" fw={600} c="blue">
-                          拖拽文件到此处上传
-                        </Text>
-                      </Stack>
-                    </Box>
-                  )}
+            <ContextMenuWrapper
+              onRefresh={() => {
+                fetchObjects();
+                setSelectedFile(null);
+              }}
+              onCreateFolder={() => setCreateFolderModalOpened(true)}
+              onUpload={() => fileOps.fileInputRef.current?.click()}
+            >
+              <MainContentArea
+                loading={loading}
+                view={view}
+                objects={objects}
+                isDragging={isDragging}
+                dragHandlers={dragHandlers}
+                selectedFile={selectedFile}
+                onEnterDir={(k) => {
+                  setPrefix(k);
+                  setSelectedFile(null);
+                }}
+                onDelete={fileOps.handleDeleteRequest}
+                onCopyUrl={fileOps.copyObjectUrl}
+                onPreviewExternal={fileOps.previewInNewWindow}
+                onSelectFile={setSelectedFile}
+                ensureObjectUrl={ensureObjectUrl}
+                gridContainerRef={gridContainerRef}
+              />
+            </ContextMenuWrapper>
 
-                  {loading ? (
-                    <Center h="100%">
-                      <Loader type="dots" />
-                    </Center>
-                  ) : view === 'list' ? (
-                    <ObjectListTable
-                      objects={objects}
-                      onEnterDir={(k) => {
-                        setPrefix(k);
-                        setSelectedFile(null);
-                      }}
-                      onDelete={handleDeleteRequest}
-                      onCopyUrl={copyObjectUrl}
-                      onPreviewExternal={previewInNewWindow}
-                      onSelectFile={setSelectedFile}
-                      selectedFileKey={selectedFile?.key}
-                    />
-                  ) : (
-                    <>
-                      <Group
-                        ref={gridContainerRef}
-                        justify="start"
-                        align="normal"
-                        gap={2}
-                      >
-                        {objects.map((o) => (
-                          <ObjectThumb
-                            key={o.key}
-                            obj={o}
-                            ensureObjectUrl={ensureObjectUrl}
-                            onDelete={handleDeleteRequest}
-                            onEnterDir={(k) => {
-                              setPrefix(k);
-                              setSelectedFile(null);
-                            }}
-                            onCopyUrl={copyObjectUrl}
-                            onPreviewExternal={previewInNewWindow}
-                            onSelectFile={setSelectedFile}
-                            selectedFileKey={selectedFile?.key}
-                          />
-                        ))}
-                      </Group>
-                      <Modal
-                        opened={!!previewUrl}
-                        onClose={() => setPreviewUrl(null)}
-                        title={previewTitle}
-                        size="xl"
-                        centered
-                      >
-                        {previewUrl && (
-                          <img
-                            src={previewUrl}
-                            alt={previewTitle}
-                            style={{
-                              width: '100%',
-                              maxHeight: 600,
-                              objectFit: 'contain',
-                            }}
-                          />
-                        )}
-                      </Modal>
-                    </>
-                  )}
-                </Box>
-              </ContextMenuTrigger>
-              <ContextMenuContent>
-                <ContextMenuItem
-                  onClick={() => {
-                    fetchObjects();
-                    setSelectedFile(null);
+            {/* Image Preview Modal */}
+            <Modal
+              opened={!!previewUrl}
+              onClose={() => setPreviewUrl(null)}
+              title={previewTitle}
+              size="xl"
+              centered
+            >
+              {previewUrl && (
+                <img
+                  src={previewUrl}
+                  alt={previewTitle}
+                  style={{
+                    width: '100%',
+                    maxHeight: 600,
+                    objectFit: 'contain',
                   }}
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Refresh
-                </ContextMenuItem>
-                <ContextMenuItem
-                  onClick={() => {
-                    setCreateFolderModalOpened(true);
-                  }}
-                >
-                  <FolderPlus className="mr-2 h-4 w-4" />
-                  New Folder
-                </ContextMenuItem>
-                <ContextMenuItem
-                  onClick={() => {
-                    fileInputRef.current?.click();
-                  }}
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload File
-                </ContextMenuItem>
-              </ContextMenuContent>
-            </ContextMenu>
+                />
+              )}
+            </Modal>
           </>
         ) : (
-          <Center h="100%" style={{ flexDirection: 'column', gap: '1rem' }}>
-            <Text size="lg" c="dimmed">
-              Welcome to S3 File Viewer
-            </Text>
-            <Text size="sm" c="dimmed">
-              Please select a connection and bucket from the left sidebar to
-              start browsing
-            </Text>
-          </Center>
+          <EmptyState />
         )}
       </AppShell.Main>
 
@@ -750,10 +261,10 @@ function App() {
         <FileDetailsSidebar
           file={selectedFile}
           onClose={() => setSelectedFile(null)}
-          onCopyUrl={copyObjectUrl}
-          onPreview={previewInNewWindow}
+          onCopyUrl={fileOps.copyObjectUrl}
+          onPreview={fileOps.previewInNewWindow}
           onDelete={(key) => {
-            handleDeleteRequest(key);
+            fileOps.handleDeleteRequest(key);
             setSelectedFile(null);
           }}
           onImagePreview={handleImagePreview}
@@ -761,60 +272,33 @@ function App() {
         />
       </AppShell.Aside>
 
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmModal
-        opened={deleteModalOpened}
-        onClose={handleDeleteCancel}
-        onConfirm={handleDeleteConfirm}
-        fileName={fileToDelete || ''}
-        loading={deletingFile}
-      />
-
-      {/* Create Folder Modal */}
-      <CreateFolderModal
-        opened={createFolderModalOpened}
-        onClose={() => setCreateFolderModalOpened(false)}
-        onConfirm={async (name) => {
-          try {
-            await createFolder(name);
-            notifications.show({
-              message: `Folder created: ${name}`,
-              color: 'green',
-              position: 'bottom-right',
-            });
-            fetchObjects();
+      {/* All Modals */}
+      <AppModals
+        deleteModalOpened={fileOps.deleteModalOpened}
+        fileToDelete={fileOps.fileToDelete}
+        deletingFile={fileOps.deletingFile}
+        onDeleteCancel={fileOps.handleDeleteCancel}
+        onDeleteConfirm={fileOps.handleDeleteConfirm}
+        createFolderModalOpened={createFolderModalOpened}
+        onCreateFolderClose={() => setCreateFolderModalOpened(false)}
+        onCreateFolderConfirm={async (name) => {
+          const success = await fileOps.handleCreateFolder(name);
+          if (success) {
             setCreateFolderModalOpened(false);
-          } catch (err: any) {
-            notifications.show({
-              message: `Create folder failed: ${err}`,
-              color: 'red',
-              position: 'bottom-right',
-            });
           }
         }}
-      />
-
-      {/* Delete Connection Confirmation Modal */}
-      <ConfirmModal
-        opened={deleteConnectionModalOpened}
-        onClose={() => {
-          setDeleteConnectionModalOpened(false);
-          setConnectionToDelete(null);
-        }}
-        onConfirm={handleDeleteConnectionConfirm}
-        title="Delete Connection"
-        message="Are you sure you want to delete this connection?"
-        itemName={connectionToDelete?.name || ''}
-        confirmLabel="Delete"
-        confirmColor="red"
+        deleteConnectionModalOpened={connectionOps.deleteConnectionModalOpened}
+        connectionToDelete={connectionOps.connectionToDelete}
+        onDeleteConnectionClose={connectionOps.handleDeleteConnectionClose}
+        onDeleteConnectionConfirm={connectionOps.handleDeleteConnectionConfirm}
       />
 
       {/* Hidden file input for context menu upload */}
       <input
-        ref={fileInputRef}
+        ref={fileOps.fileInputRef}
         type="file"
         style={{ display: 'none' }}
-        onChange={handleFileUpload}
+        onChange={fileOps.handleFileUpload}
       />
 
       {/* Upload Progress Display */}
@@ -825,7 +309,8 @@ function App() {
               uploadId,
               {
                 ...progress,
-                fileName: uploadFileNames.get(uploadId) || 'Unknown file',
+                fileName:
+                  fileOps.uploadFileNames.get(uploadId) || 'Unknown file',
               },
             ])
           )

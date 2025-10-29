@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "fs-cap",
+  "description": "enable file system read/write",
+  "windows": ["*"],
+  "permissions": [
+    "fs:allow-write-file",
+    "fs:allow-read-file"
+  ]
+}

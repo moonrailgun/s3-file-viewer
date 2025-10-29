@@ -492,6 +492,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .manage(tokio::sync::Mutex::new(None::<AppState>))
         .invoke_handler(tauri::generate_handler![
             connect,
@@ -501,7 +503,8 @@ pub fn run() {
             delete_object,
             upload_object,
             upload_object_with_progress,
-            get_object_url
+            get_object_url,
+            download_object
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -529,4 +532,47 @@ async fn get_object_url(
         .await
         .map_err(|e| format_s3_error(&e))?;
     Ok(req.uri().to_string())
+}
+
+#[tauri::command]
+async fn download_object(
+    bucket: String,
+    key: String,
+    save_path: String,
+    state: tauri::State<'_, tokio::sync::Mutex<Option<AppState>>>,
+) -> Result<(), String> {
+    println!(
+        "[download_object] bucket: {}, key: {}, save_path: {}",
+        bucket, key, save_path
+    );
+
+    let guard = state.lock().await;
+    let app = guard.as_ref().ok_or("Not connected")?;
+
+    // Download object from S3
+    let resp = app
+        .s3_client
+        .get_object()
+        .bucket(bucket)
+        .key(key)
+        .send()
+        .await
+        .map_err(|e| format_s3_error(&e))?;
+
+    // Read the body as bytes
+    let data = resp
+        .body
+        .collect()
+        .await
+        .map_err(|e| format!("Failed to read object body: {}", e))?;
+    let bytes = data.into_bytes();
+
+    // Write to file
+    std::fs::write(&save_path, bytes).map_err(|e| format!("Failed to write file: {}", e))?;
+
+    println!(
+        "[download_object] Successfully downloaded to: {}",
+        save_path
+    );
+    Ok(())
 }

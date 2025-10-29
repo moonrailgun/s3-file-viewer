@@ -8,7 +8,7 @@ import {
   Box,
   ActionIcon,
 } from '@mantine/core';
-import { X, Copy, Eye, Trash2 } from 'lucide-react';
+import { X, Copy, Eye, Trash2, Download } from 'lucide-react';
 import { S3ObjectInfo } from '../types';
 import {
   humanFileSize,
@@ -25,6 +25,7 @@ export type FileDetailsSidebarProps = {
   onClose: () => void;
   onCopyUrl?: (key: string) => void | Promise<void>;
   onPreview?: (key: string) => void | Promise<void>;
+  onDownload?: (key: string) => void | Promise<void>;
   onDelete?: (key: string) => void;
   ensureObjectUrl?: (key: string) => Promise<string | undefined>;
   onImagePreview?: (key: string, url: string) => void;
@@ -35,6 +36,7 @@ export const FileDetailsSidebar: React.FC<FileDetailsSidebarProps> = ({
   onClose,
   onCopyUrl,
   onPreview,
+  onDownload,
   onDelete,
   ensureObjectUrl,
   onImagePreview,
@@ -213,6 +215,17 @@ export const FileDetailsSidebar: React.FC<FileDetailsSidebarProps> = ({
                 fullWidth
               >
                 Preview
+              </Button>
+            )}
+            {onDownload && (
+              <Button
+                variant="light"
+                color="green"
+                leftSection={<Download size={16} />}
+                onClick={() => onDownload(file.key)}
+                fullWidth
+              >
+                Download
               </Button>
             )}
             {onDelete && (

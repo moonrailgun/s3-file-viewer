@@ -27,7 +27,9 @@
       "capabilities": [
         "clipboard-cap",
         "webview-cap",
-        "event-cap"
+        "event-cap",
+        "fs-cap",
+        "dialog-cap"
       ]
     }
   },

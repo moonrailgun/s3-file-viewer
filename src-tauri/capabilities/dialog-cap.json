@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "dialog-cap",
+  "description": "enable dialog operations",
+  "windows": ["*"],
+  "permissions": [
+    "dialog:allow-save",
+    "dialog:allow-open"
+  ]
+}

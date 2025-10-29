@@ -1,4 +1,5 @@
 docs/.vitepress/cache/
+target/
 
 # Logs
 logs

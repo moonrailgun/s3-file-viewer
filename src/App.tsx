@@ -59,6 +59,7 @@ function App() {
     createFolder,
     uploadFile,
     fetchObjects,
+    bucket,
   });
 
   // Connection operations hook
@@ -258,6 +259,7 @@ function App() {
           onClose={() => setSelectedFile(null)}
           onCopyUrl={fileOps.copyObjectUrl}
           onPreview={fileOps.previewInNewWindow}
+          onDownload={fileOps.downloadFile}
           onDelete={(key) => {
             fileOps.handleDeleteRequest(key);
             setSelectedFile(null);

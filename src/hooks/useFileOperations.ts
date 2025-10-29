@@ -3,6 +3,8 @@ import { notifications } from '@mantine/notifications';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { openUrl as openExternalUrl } from '@tauri-apps/plugin-opener';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { save } from '@tauri-apps/plugin-dialog';
+import { invoke } from '@tauri-apps/api/core';
 
 interface UseFileOperationsProps {
   ensureObjectUrl: (key: string) => Promise<string | undefined>;
@@ -10,6 +12,7 @@ interface UseFileOperationsProps {
   createFolder: (name: string) => Promise<void>;
   uploadFile: (file: File) => Promise<string>;
   fetchObjects: () => void;
+  bucket: string | null;
 }
 
 /**
@@ -21,6 +24,7 @@ export function useFileOperations({
   createFolder,
   uploadFile,
   fetchObjects,
+  bucket,
 }: UseFileOperationsProps) {
   const [deleteModalOpened, setDeleteModalOpened] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
@@ -98,6 +102,70 @@ export function useFileOperations({
       }
     },
     [ensureObjectUrl]
+  );
+
+  // Download file to local
+  const downloadFile = useCallback(
+    async (key: string) => {
+      try {
+        if (!bucket) {
+          throw new Error('No bucket selected');
+        }
+
+        // Get the file name from the key
+        const fileName = key.split('/').pop() || 'download';
+
+        // Extract file extension
+        const lastDotIndex = fileName.lastIndexOf('.');
+        const hasExtension =
+          lastDotIndex > 0 && lastDotIndex < fileName.length - 1;
+        const extension = hasExtension
+          ? fileName.substring(lastDotIndex + 1)
+          : '';
+
+        // Build filters based on file extension
+        const filters = hasExtension
+          ? [
+              {
+                name: `${extension.toUpperCase()} Files`,
+                extensions: [extension],
+              },
+            ]
+          : undefined;
+
+        // Show save dialog
+        const filePath = await save({
+          defaultPath: fileName,
+          filters,
+        });
+
+        if (!filePath) {
+          // User cancelled the dialog
+          return;
+        }
+
+        // Download the file using Rust layer
+        await invoke('download_object', {
+          bucket,
+          key,
+          savePath: filePath,
+        });
+
+        notifications.show({
+          message: 'File downloaded successfully',
+          color: 'green',
+          position: 'bottom-right',
+        });
+      } catch (e) {
+        console.error('Download failed:', e);
+        notifications.show({
+          message: `Download failed: ${e instanceof Error ? e.message : 'Unknown error'}`,
+          color: 'red',
+          position: 'bottom-right',
+        });
+      }
+    },
+    [bucket]
   );
 
   // Delete handlers
@@ -227,6 +295,7 @@ export function useFileOperations({
     // Methods
     copyObjectUrl,
     previewInNewWindow,
+    downloadFile,
     handleDeleteRequest,
     handleDeleteCancel,
     handleDeleteConfirm,

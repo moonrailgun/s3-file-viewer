@@ -15,10 +15,12 @@ import {
   getFileName,
   isImageKey,
   isVideoKey,
+  isAudioKey,
 } from '../utils/common';
 import { getFileIconWithProps } from '../utils/icons';
 import { ImagePreview } from './ImagePreview';
 import { VideoPreview } from './VideoPreview';
+import { AudioPreview } from './AudioPreview';
 
 export type FileDetailsSidebarProps = {
   file: S3ObjectInfo | null;
@@ -114,6 +116,14 @@ export const FileDetailsSidebar: React.FC<FileDetailsSidebarProps> = ({
               fileKey={file.key}
               ensureObjectUrl={ensureObjectUrl}
               className="max-h-[300px] w-full rounded-lg border border-solid border-[light-dark(var(--mantine-color-gray-3),var(--mantine-color-dark-4))] bg-[var(--mantine-color-body)]"
+              controls
+            />
+          ) : isAudioKey(file.key) ? (
+            // Show audio player for audio files
+            <AudioPreview
+              fileKey={file.key}
+              ensureObjectUrl={ensureObjectUrl}
+              style={{ width: '100%' }}
               controls
             />
           ) : (

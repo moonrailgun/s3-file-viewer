@@ -16,6 +16,10 @@ export function isVideoKey(key: string) {
   return /\.(mp4|avi|mov|wmv|flv|webm|mkv|m4v|3gp|ogv)$/i.test(key);
 }
 
+export function isAudioKey(key: string) {
+  return /\.(mp3|wav|flac|aac|ogg|wma|m4a|opus)$/i.test(key);
+}
+
 export function getFileType(
   key: string
 ): 'image' | 'document' | 'video' | 'audio' | 'archive' | 'code' | 'other' {

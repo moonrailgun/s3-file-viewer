@@ -13,7 +13,6 @@ import {
   IconUpload,
   IconLayoutList,
   IconLayoutGrid,
-  IconDatabase,
   IconMenu2,
 } from '@tabler/icons-react';
 import { CreateFolderModal } from './CreateFolderModal';
@@ -21,8 +20,6 @@ import { CreateFolderModal } from './CreateFolderModal';
 export type CompactToolbarProps = {
   // Breadcrumb navigation
   breadcrumbItems: React.ReactNode[];
-  // Current bucket name
-  bucketName?: string | null;
   // View mode
   view: string;
   onChangeView: (view: string) => void;
@@ -41,7 +38,6 @@ export type CompactToolbarProps = {
 
 export const CompactToolbar: React.FC<CompactToolbarProps> = ({
   breadcrumbItems,
-  bucketName,
   view,
   onChangeView,
   onRefresh,
@@ -112,23 +108,11 @@ export const CompactToolbar: React.FC<CompactToolbarProps> = ({
             </ActionIcon>
           )}
 
-          {hasBucket && bucketName ? (
+          {hasBucket ? (
             <Box
               className="flex items-center gap-2"
               style={{ flex: 1, minWidth: 0 }}
             >
-              {/* Bucket name */}
-              <Group gap={6}>
-                <IconDatabase size={14} color="var(--mantine-color-blue-6)" />
-                <Text
-                  size="xs"
-                  fw={600}
-                  c="blue"
-                  className={isMobile ? 'hidden sm:inline' : ''}
-                >
-                  {bucketName}
-                </Text>
-              </Group>
               {/* Breadcrumbs */}
               {breadcrumbItems.length > 0 ? (
                 <Breadcrumbs

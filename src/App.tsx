@@ -111,10 +111,14 @@ function App() {
   });
 
   // Breadcrumbs navigation
-  const breadcrumbItems = useBreadcrumbs(prefix || '', (path: string) => {
-    setPrefix(path);
-    setSelectedFile(null);
-  });
+  const breadcrumbItems = useBreadcrumbs(
+    prefix || '',
+    bucket,
+    (path: string) => {
+      setPrefix(path);
+      setSelectedFile(null);
+    }
+  );
 
   // Handle image preview in modal
   const handleImagePreview = useCallback((key: string, url: string) => {
@@ -196,7 +200,6 @@ function App() {
           <>
             <CompactToolbar
               breadcrumbItems={breadcrumbItems}
-              bucketName={bucket}
               view={view}
               onChangeView={setView}
               onRefresh={() => {

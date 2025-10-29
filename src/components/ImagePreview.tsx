@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Loader, Box } from '@mantine/core';
 
 export type ImagePreviewProps = {
   fileKey: string;
@@ -26,6 +27,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
 }) => {
   const imgRef = useRef<HTMLImageElement | null>(null);
   const loadedKeyRef = useRef<string>('');
+  const [loading, setLoading] = useState(true);
 
   // Load image when component mounts or when in viewport (for lazy loading)
   useEffect(() => {
@@ -38,6 +40,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
     if (imgRef.current) {
       imgRef.current.src = '';
       loadedKeyRef.current = '';
+      setLoading(true);
     }
 
     // Load image if conditions are met
@@ -53,6 +56,11 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileKey, lazy, inView]);
 
+  // Handle image load success
+  const handleLoad = () => {
+    setLoading(false);
+  };
+
   // Handle image load error by retrying with ensureObjectUrl
   const handleError = async (e: React.SyntheticEvent<HTMLImageElement>) => {
     if (ensureObjectUrl) {
@@ -64,13 +72,38 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
   };
 
   return (
-    <img
-      ref={imgRef}
-      alt={alt}
-      style={style}
-      className={className}
-      onClick={onClick}
-      onError={handleError}
-    />
+    <Box style={{ position: 'relative', ...style }}>
+      {loading && (
+        <Box
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background:
+              'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))',
+            borderRadius: 6,
+          }}
+        >
+          <Loader size="sm" />
+        </Box>
+      )}
+      <img
+        ref={imgRef}
+        alt={alt}
+        style={{
+          ...style,
+          display: loading ? 'none' : 'block',
+        }}
+        className={className}
+        onClick={onClick}
+        onLoad={handleLoad}
+        onError={handleError}
+      />
+    </Box>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { ActionIcon, Group } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { Copy, Eye, Trash2 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
@@ -34,6 +35,7 @@ const VirtualRow: React.FC<{
   onCopyUrl: (key: string) => void | Promise<void>;
   onPreviewExternal: (key: string) => void | Promise<void>;
   onSelectFile?: (file: S3ObjectInfo) => void;
+  isMobile: boolean;
 }> = ({
   obj,
   isSelected,
@@ -43,6 +45,7 @@ const VirtualRow: React.FC<{
   onCopyUrl,
   onPreviewExternal,
   onSelectFile,
+  isMobile,
 }) => {
   return (
     <ContextMenu key={obj.key}>
@@ -50,7 +53,9 @@ const VirtualRow: React.FC<{
         <div
           className="grid min-h-8 cursor-pointer items-center gap-1.5 px-3 py-0.5 text-[13px] transition-colors duration-150 select-none"
           style={{
-            gridTemplateColumns: '20px 1fr 80px 130px 100px',
+            gridTemplateColumns: isMobile
+              ? '20px 1fr 60px'
+              : '20px 1fr 80px 130px 100px',
             backgroundColor: isSelected
               ? 'light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5))'
               : index % 2 === 0
@@ -111,25 +116,42 @@ const VirtualRow: React.FC<{
                 {obj.key.replace(`/${getFileName(obj.key)}`, '') || '/'}
               </div>
             )}
+            {/* Show size on mobile under filename */}
+            {isMobile && !obj.is_dir && (
+              <div
+                className="text-[11px]"
+                style={{
+                  color: 'var(--mantine-color-dimmed)',
+                }}
+              >
+                {humanFileSize(obj.size)}
+              </div>
+            )}
           </div>
-          <div>{obj.is_dir ? '-' : humanFileSize(obj.size)}</div>
-          <div className="text-nowrap">{formatDateTime(obj.last_modified)}</div>
+          {!isMobile && <div>{obj.is_dir ? '-' : humanFileSize(obj.size)}</div>}
+          {!isMobile && (
+            <div className="text-nowrap">
+              {formatDateTime(obj.last_modified)}
+            </div>
+          )}
           <div className="flex justify-center">
             {!obj.is_dir && (
               <Group gap="xs" justify="center">
-                <ActionIcon
-                  variant="light"
-                  color="blue"
-                  size="sm"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    await onCopyUrl(obj.key);
-                  }}
-                  title="Copy URL"
-                  className="transition-all duration-200 ease-in-out"
-                >
-                  <IconCopy size={14} />
-                </ActionIcon>
+                {!isMobile && (
+                  <ActionIcon
+                    variant="light"
+                    color="blue"
+                    size="sm"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await onCopyUrl(obj.key);
+                    }}
+                    title="Copy URL"
+                    className="transition-all duration-200 ease-in-out"
+                  >
+                    <IconCopy size={14} />
+                  </ActionIcon>
+                )}
                 <ActionIcon
                   variant="light"
                   color="grape"
@@ -143,19 +165,21 @@ const VirtualRow: React.FC<{
                 >
                   <IconEye size={14} />
                 </ActionIcon>
-                <ActionIcon
-                  variant="light"
-                  color="red"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(obj.key);
-                  }}
-                  title="Delete"
-                  className="transition-all duration-200 ease-in-out"
-                >
-                  <IconTrash size={14} />
-                </ActionIcon>
+                {!isMobile && (
+                  <ActionIcon
+                    variant="light"
+                    color="red"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(obj.key);
+                    }}
+                    title="Delete"
+                    className="transition-all duration-200 ease-in-out"
+                  >
+                    <IconTrash size={14} />
+                  </ActionIcon>
+                )}
               </Group>
             )}
           </div>
@@ -207,6 +231,7 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
   selectedFileKey,
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
+  const isMobile = useMediaQuery('(max-width: 640px)');
 
   // Initialize virtualizer with dynamic height measurement
   const virtualizer = useVirtualizer({
@@ -256,7 +281,9 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
       <div
         className="sticky top-0 z-10 grid gap-1.5 px-3 py-1 text-xs font-semibold"
         style={{
-          gridTemplateColumns: '20px 1fr 80px 130px 100px',
+          gridTemplateColumns: isMobile
+            ? '20px 1fr 60px'
+            : '20px 1fr 80px 130px 100px',
           backgroundColor:
             'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))',
           borderBottom:
@@ -265,8 +292,8 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
       >
         <div></div>
         <div>Name</div>
-        <div>Size</div>
-        <div>Modified</div>
+        {!isMobile && <div>Size</div>}
+        {!isMobile && <div>Modified</div>}
         <div className="text-center">Actions</div>
       </div>
 
@@ -299,6 +326,7 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
                   onCopyUrl={onCopyUrl}
                   onPreviewExternal={onPreviewExternal}
                   onSelectFile={onSelectFile}
+                  isMobile={isMobile || false}
                 />
               </div>
             );

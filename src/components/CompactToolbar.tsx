@@ -14,6 +14,7 @@ import {
   IconLayoutList,
   IconLayoutGrid,
   IconDatabase,
+  IconMenu2,
 } from '@tabler/icons-react';
 import { CreateFolderModal } from './CreateFolderModal';
 
@@ -33,6 +34,9 @@ export type CompactToolbarProps = {
   loading?: boolean;
   // Whether a bucket is selected
   hasBucket: boolean;
+  // Mobile navigation
+  onToggleNavbar?: () => void;
+  isMobile?: boolean;
 };
 
 export const CompactToolbar: React.FC<CompactToolbarProps> = ({
@@ -45,6 +49,8 @@ export const CompactToolbar: React.FC<CompactToolbarProps> = ({
   onUpload,
   loading = false,
   hasBucket,
+  onToggleNavbar,
+  isMobile = false,
 }) => {
   const [createFolderModalOpened, setCreateFolderModalOpened] = useState(false);
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -84,30 +90,70 @@ export const CompactToolbar: React.FC<CompactToolbarProps> = ({
             'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))',
         }}
       >
-        {/* Left: Bucket name and Breadcrumbs */}
-        <Box style={{ flex: 1, minWidth: 0 }}>
+        {/* Left: Mobile menu button + Bucket name and Breadcrumbs */}
+        <Box
+          style={{
+            flex: 1,
+            minWidth: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          {/* Mobile hamburger menu */}
+          {isMobile && onToggleNavbar && (
+            <ActionIcon
+              size="sm"
+              variant="subtle"
+              onClick={onToggleNavbar}
+              title="Toggle Sidebar"
+            >
+              <IconMenu2 size={16} />
+            </ActionIcon>
+          )}
+
           {hasBucket && bucketName ? (
-            <Box className="flex items-center gap-2">
+            <Box
+              className="flex items-center gap-2"
+              style={{ flex: 1, minWidth: 0 }}
+            >
               {/* Bucket name */}
               <Group gap={6}>
                 <IconDatabase size={14} color="var(--mantine-color-blue-6)" />
-                <Text size="xs" fw={600} c="blue">
+                <Text
+                  size="xs"
+                  fw={600}
+                  c="blue"
+                  className={isMobile ? 'hidden sm:inline' : ''}
+                >
                   {bucketName}
                 </Text>
               </Group>
               {/* Breadcrumbs */}
               {breadcrumbItems.length > 0 ? (
-                <Breadcrumbs separator="/" separatorMargin={4}>
+                <Breadcrumbs
+                  separator="/"
+                  separatorMargin={4}
+                  className={isMobile ? 'hidden sm:flex' : ''}
+                >
                   {breadcrumbItems}
                 </Breadcrumbs>
               ) : (
-                <Text size="sm" c="dimmed">
+                <Text
+                  size="sm"
+                  c="dimmed"
+                  className={isMobile ? 'hidden sm:inline' : ''}
+                >
                   /
                 </Text>
               )}
             </Box>
           ) : (
-            <Text size="sm" c="dimmed">
+            <Text
+              size="sm"
+              c="dimmed"
+              className={isMobile ? 'hidden sm:inline' : ''}
+            >
               {hasBucket ? '/' : 'Please select a bucket'}
             </Text>
           )}
@@ -126,14 +172,16 @@ export const CompactToolbar: React.FC<CompactToolbarProps> = ({
               <IconRefresh size={14} />
             </ActionIcon>
 
-            <ActionIcon
-              size="sm"
-              variant="subtle"
-              onClick={() => setCreateFolderModalOpened(true)}
-              title="New Folder"
-            >
-              <IconFolderPlus size={14} />
-            </ActionIcon>
+            {!isMobile && (
+              <ActionIcon
+                size="sm"
+                variant="subtle"
+                onClick={() => setCreateFolderModalOpened(true)}
+                title="New Folder"
+              >
+                <IconFolderPlus size={14} />
+              </ActionIcon>
+            )}
 
             <ActionIcon
               size="sm"

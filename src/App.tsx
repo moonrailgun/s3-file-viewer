@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { AppShell, Modal } from '@mantine/core';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { useS3Browser } from './hooks/useS3Browser';
 import { useFileDrop } from './hooks/useFileDrop';
@@ -51,6 +52,11 @@ function App() {
   const [previewTitle, setPreviewTitle] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<S3ObjectInfo | null>(null);
   const [createFolderModalOpened, setCreateFolderModalOpened] = useState(false);
+
+  // Mobile sidebar state
+  const [navbarOpened, { toggle: toggleNavbar, close: closeNavbar }] =
+    useDisclosure(false);
+  const isMobile = useMediaQuery('(max-width: 640px)');
 
   // File operations hook
   const fileOps = useFileOperations({
@@ -137,7 +143,11 @@ function App() {
 
   return (
     <AppShell
-      navbar={{ width: 250, breakpoint: 'sm' }}
+      navbar={{
+        width: 250,
+        breakpoint: 'sm',
+        collapsed: { mobile: !navbarOpened },
+      }}
       aside={{
         width: 320,
         breakpoint: 'md',
@@ -159,12 +169,17 @@ function App() {
           connectionLoading={connectionLoading}
           onCreateConnection={openConnectionForm}
           onSelectConnection={connectToSavedConnection}
-          onSelectBucket={selectConnectionBucket}
+          onSelectBucket={(connId, bucketName) => {
+            selectConnectionBucket(connId, bucketName);
+            if (isMobile) closeNavbar();
+          }}
           onRefreshBuckets={refreshConnectionBuckets}
           onEditConnection={openEditConnectionForm}
           onRequestDeleteConnection={
             connectionOps.handleRequestDeleteConnection
           }
+          onCloseMobile={closeNavbar}
+          isMobile={isMobile}
         />
       </AppShell.Navbar>
 
@@ -192,6 +207,8 @@ function App() {
               onUpload={handleToolbarUpload}
               loading={loading}
               hasBucket={!!bucket}
+              onToggleNavbar={toggleNavbar}
+              isMobile={isMobile}
             />
 
             <ContextMenuWrapper

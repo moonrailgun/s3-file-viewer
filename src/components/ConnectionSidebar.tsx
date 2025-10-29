@@ -8,6 +8,7 @@ import {
   Loader,
   Button,
   Collapse,
+  ActionIcon,
 } from '@mantine/core';
 import {
   IconServer,
@@ -16,6 +17,7 @@ import {
   IconChevronDown,
   IconPlus,
   IconPlugConnected,
+  IconX,
 } from '@tabler/icons-react';
 import { RefreshCw, Trash2, Plus, Edit } from 'lucide-react';
 import { listen } from '@tauri-apps/api/event';
@@ -48,6 +50,9 @@ export type ConnectionSidebarProps = {
     connectionId: string,
     connectionName: string
   ) => void;
+  // Mobile support
+  onCloseMobile?: () => void;
+  isMobile?: boolean;
 };
 
 export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
@@ -61,6 +66,8 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
   onRefreshBuckets,
   onEditConnection,
   onRequestDeleteConnection,
+  onCloseMobile,
+  isMobile = false,
 }) => {
   const [savedConnections, setSavedConnections] = useState<SavedConnection[]>(
     []
@@ -169,14 +176,27 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
             '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
         }}
       >
-        <Button
-          fullWidth
-          size="xs"
-          leftSection={<IconPlus size={14} />}
-          onClick={onCreateConnection}
-        >
-          New Connection
-        </Button>
+        <Group gap="xs">
+          <Button
+            style={{ flex: 1 }}
+            size="xs"
+            leftSection={<IconPlus size={14} />}
+            onClick={onCreateConnection}
+          >
+            New Connection
+          </Button>
+          {/* Mobile close button */}
+          {isMobile && onCloseMobile && (
+            <ActionIcon
+              size="sm"
+              variant="subtle"
+              onClick={onCloseMobile}
+              title="Close Sidebar"
+            >
+              <IconX size={16} />
+            </ActionIcon>
+          )}
+        </Group>
       </Box>
 
       {/* Connections list */}

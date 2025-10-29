@@ -155,6 +155,47 @@ body {
   background: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
 }
 
+/* Mobile-specific styles */
+@media (max-width: 640px) {
+  /* Reduce padding on mobile */
+  body {
+    font-size: 14px;
+  }
+
+  /* Smaller scrollbar on mobile */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  /* Make buttons slightly larger for touch targets */
+  .mantine-ActionIcon-root {
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  /* Adjust table text size for mobile */
+  .mantine-Table-root {
+    font-size: 12px;
+  }
+
+  /* Ensure modals fit on mobile screens */
+  .mantine-Modal-content {
+    margin: 8px;
+    max-height: calc(100vh - 16px);
+  }
+
+  /* Reduce modal padding on mobile */
+  .mantine-Modal-body {
+    padding: 12px;
+  }
+
+  /* Make segmented control touch-friendly */
+  .mantine-SegmentedControl-label {
+    padding: 6px 10px;
+  }
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

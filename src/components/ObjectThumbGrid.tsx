@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Group } from '@mantine/core';
 import { ObjectThumb } from './ObjectThumb';
 import { S3ObjectInfo } from '../types';
 
@@ -115,19 +114,29 @@ export const ObjectThumbGrid: React.FC<ObjectThumbGridProps> = ({
       >
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const rowObjects = rows[virtualRow.index];
+
           return (
             <div
               key={virtualRow.key}
               data-index={virtualRow.index}
               ref={virtualizer.measureElement}
-              className="absolute top-0 left-0 w-full px-2"
+              className="absolute top-0 left-0 w-full"
               style={{
                 transform: `translateY(${virtualRow.start}px)`,
                 paddingTop: `${THUMB_GAP}px`,
                 paddingBottom: `${THUMB_GAP}px`,
+                paddingLeft: '8px',
+                paddingRight: '8px',
               }}
             >
-              <Group gap={THUMB_GAP} justify="center" align="start">
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${columnsPerRow}, ${THUMB_WIDTH}px)`,
+                  gap: `${THUMB_GAP}px`,
+                  justifyContent: 'center',
+                }}
+              >
                 {rowObjects.map((obj) => (
                   <ObjectThumb
                     key={obj.key}
@@ -141,7 +150,7 @@ export const ObjectThumbGrid: React.FC<ObjectThumbGridProps> = ({
                     selectedFileKey={selectedFileKey}
                   />
                 ))}
-              </Group>
+              </div>
             </div>
           );
         })}

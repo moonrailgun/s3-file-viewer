@@ -28,6 +28,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
   const imgRef = useRef<HTMLImageElement | null>(null);
   const loadedKeyRef = useRef<string>('');
   const [loading, setLoading] = useState(true);
+  const errorAttemptedRef = useRef<Set<string>>(new Set()); // Track error retry attempts
 
   // Load image when component mounts or when in viewport (for lazy loading)
   useEffect(() => {
@@ -61,8 +62,17 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
     setLoading(false);
   };
 
-  // Handle image load error by retrying with ensureObjectUrl
+  // Handle image load error - only retry once per file
   const handleError = async (e: React.SyntheticEvent<HTMLImageElement>) => {
+    setLoading(false);
+
+    // Prevent infinite retry loops
+    if (errorAttemptedRef.current.has(fileKey)) {
+      return;
+    }
+
+    errorAttemptedRef.current.add(fileKey);
+
     if (ensureObjectUrl) {
       const url = await ensureObjectUrl(fileKey);
       if (url) {

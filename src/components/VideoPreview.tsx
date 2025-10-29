@@ -28,6 +28,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const loadedKeyRef = useRef<string>('');
   const [loading, setLoading] = useState(true);
+  const errorAttemptedRef = useRef<Set<string>>(new Set()); // Track error retry attempts
 
   // Load video when component mounts or fileKey changes
   useEffect(() => {
@@ -63,9 +64,17 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
     setLoading(false);
   };
 
-  // Handle video load error by retrying with ensureObjectUrl
+  // Handle video load error - only retry once per file
   const handleError = async () => {
     setLoading(false);
+
+    // Prevent infinite retry loops
+    if (errorAttemptedRef.current.has(fileKey)) {
+      return;
+    }
+
+    errorAttemptedRef.current.add(fileKey);
+
     if (ensureObjectUrl && videoRef.current) {
       const url = await ensureObjectUrl(fileKey);
       if (url) {

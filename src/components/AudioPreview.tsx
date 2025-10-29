@@ -39,6 +39,7 @@ export const AudioPreview: React.FC<AudioPreviewProps> = ({
   const loadedKeyRef = useRef<string>('');
   const [loading, setLoading] = useState(true);
   const [duration, setDuration] = useState<number | null>(null);
+  const errorAttemptedRef = useRef<Set<string>>(new Set()); // Track error retry attempts
 
   const fileName = getFileName(fileKey);
   const fileExtension = fileName.includes('.')
@@ -83,9 +84,17 @@ export const AudioPreview: React.FC<AudioPreviewProps> = ({
     }
   };
 
-  // Handle audio load error by retrying with ensureObjectUrl
+  // Handle audio load error - only retry once per file
   const handleError = async () => {
     setLoading(false);
+
+    // Prevent infinite retry loops
+    if (errorAttemptedRef.current.has(fileKey)) {
+      return;
+    }
+
+    errorAttemptedRef.current.add(fileKey);
+
     if (ensureObjectUrl && audioRef.current) {
       const url = await ensureObjectUrl(fileKey);
       if (url) {

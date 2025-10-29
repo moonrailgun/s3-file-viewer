@@ -24,7 +24,8 @@ export function useS3Browser() {
   const [loading, setLoading] = useState(false);
   const [buckets, setBuckets] = useState<BucketInfo[]>([]);
   const [objects, setObjects] = useState<S3ObjectInfo[]>([]);
-  const urlCacheRef = useRef<Map<string, string>>(new Map());
+  const urlCacheRef = useRef<Map<string, string | null>>(new Map());
+  const urlErrorCacheRef = useRef<Map<string, boolean>>(new Map()); // Track failed requests
 
   // Multi-connection state
   const [activeConnectionId, setActiveConnectionId] = useState<string | null>(
@@ -68,6 +69,7 @@ export function useS3Browser() {
 
   const handleResetUrlCache = useCallback(() => {
     urlCacheRef.current.clear();
+    urlErrorCacheRef.current.clear(); // Also clear error cache
   }, []);
 
   useEffect(() => {
@@ -246,6 +248,7 @@ export function useS3Browser() {
     setBucket(null);
     setPrefix('');
     urlCacheRef.current.clear();
+    urlErrorCacheRef.current.clear(); // Clear error cache on disconnect
 
     notifications.show({
       message: 'Disconnected from S3',
@@ -258,6 +261,12 @@ export function useS3Browser() {
     if (!bucket) {
       return undefined;
     }
+
+    // Check if this request has already failed
+    if (urlErrorCacheRef.current.get(key)) {
+      return undefined;
+    }
+
     const cached = urlCacheRef.current.get(key);
     if (cached) {
       return cached;
@@ -272,6 +281,9 @@ export function useS3Browser() {
       urlCacheRef.current.set(key, url);
       return url;
     } catch (e) {
+      // Cache the error to prevent repeated requests
+      urlErrorCacheRef.current.set(key, true);
+      console.error(`Failed to get URL for ${key}:`, e);
       return undefined;
     }
   }
@@ -294,7 +306,7 @@ export function useS3Browser() {
     }
   }
 
-  async function fetchObjects() {
+  const fetchObjects = useCallback(async () => {
     if (!bucket) return;
     try {
       setLoading(true);
@@ -312,7 +324,7 @@ export function useS3Browser() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [bucket, prefix]);
 
   async function deleteObject(key: string) {
     if (!bucket) return;
@@ -406,7 +418,7 @@ export function useS3Browser() {
     if (connected && bucket != null) {
       fetchObjects();
     }
-  }, [connected, bucket, prefix]);
+  }, [connected, bucket, fetchObjects]);
 
   return {
     // state

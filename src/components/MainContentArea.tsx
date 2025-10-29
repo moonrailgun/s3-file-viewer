@@ -1,8 +1,8 @@
 import React from 'react';
-import { Box, Center, Loader, Group, Stack, Text } from '@mantine/core';
+import { Box, Center, Loader, Stack, Text } from '@mantine/core';
 import { Upload } from 'lucide-react';
 import { ObjectListTable } from './ObjectListTable';
-import { ObjectThumb } from './ObjectThumb';
+import { ObjectThumbGrid } from './ObjectThumbGrid';
 import type { S3ObjectInfo } from '../types';
 
 interface MainContentAreaProps {
@@ -18,7 +18,6 @@ interface MainContentAreaProps {
   onPreviewExternal: (key: string) => void;
   onSelectFile: (file: S3ObjectInfo | null) => void;
   ensureObjectUrl: (key: string) => Promise<string | undefined>;
-  gridContainerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 /**
@@ -39,32 +38,16 @@ export const MainContentArea = React.memo(
     onPreviewExternal,
     onSelectFile,
     ensureObjectUrl,
-    gridContainerRef,
   }: MainContentAreaProps) => {
     return (
-      <Box
-        style={{ flex: 1, overflow: 'auto', position: 'relative' }}
-        p="xs"
-        {...dragHandlers}
-      >
+      <Box className="relative flex-1 overflow-auto" p="xs" {...dragHandlers}>
         {/* Drag and drop overlay */}
         {isDragging && (
           <Box
+            className="pointer-events-none absolute inset-0 z-[999] flex items-center justify-center rounded-lg backdrop-blur-sm"
             style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
               backgroundColor: 'rgba(0, 123, 255, 0.1)',
-              backdropFilter: 'blur(2px)',
               border: '3px dashed var(--mantine-color-blue-6)',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 999,
-              pointerEvents: 'none',
             }}
           >
             <Stack align="center" gap="md">
@@ -91,21 +74,16 @@ export const MainContentArea = React.memo(
             selectedFileKey={selectedFile?.key}
           />
         ) : (
-          <Group ref={gridContainerRef} justify="start" align="normal" gap={2}>
-            {objects.map((o) => (
-              <ObjectThumb
-                key={o.key}
-                obj={o}
-                ensureObjectUrl={ensureObjectUrl}
-                onDelete={onDelete}
-                onEnterDir={onEnterDir}
-                onCopyUrl={onCopyUrl}
-                onPreviewExternal={onPreviewExternal}
-                onSelectFile={onSelectFile}
-                selectedFileKey={selectedFile?.key}
-              />
-            ))}
-          </Group>
+          <ObjectThumbGrid
+            objects={objects}
+            ensureObjectUrl={ensureObjectUrl}
+            onDelete={onDelete}
+            onEnterDir={onEnterDir}
+            onCopyUrl={onCopyUrl}
+            onPreviewExternal={onPreviewExternal}
+            onSelectFile={onSelectFile}
+            selectedFileKey={selectedFile?.key}
+          />
         )}
       </Box>
     );

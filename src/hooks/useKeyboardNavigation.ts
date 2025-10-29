@@ -7,7 +7,6 @@ interface UseKeyboardNavigationProps {
   selectedFile: S3ObjectInfo | null;
   view: string;
   modalsOpen: boolean;
-  gridContainerRef: React.RefObject<HTMLDivElement | null>;
   onSetSelectedFile: (file: S3ObjectInfo | null) => void;
   onEnterFolder: (key: string) => void;
   onPreviewFile: (key: string) => void;
@@ -23,7 +22,6 @@ export function useKeyboardNavigation({
   selectedFile,
   view,
   modalsOpen,
-  gridContainerRef,
   onSetSelectedFile,
   onEnterFolder,
   onPreviewFile,
@@ -83,13 +81,13 @@ export function useKeyboardNavigation({
         }
       } else {
         // Grid view: 4-directional navigation
-        // Calculate columns based on container width
-        const containerWidth = gridContainerRef.current?.clientWidth || 0;
+        // Calculate columns based on window width (approximate)
         const itemWidth = 220; // ObjectThumb width
-        const gap = 2; // gap value from Group
+        const gap = 8; // gap value from ObjectThumbGrid
+        const containerWidth = window.innerWidth - 250 - 32; // Approximate: subtract sidebar width and padding
         const columns = Math.max(
           1,
-          Math.floor(containerWidth / (itemWidth + gap))
+          Math.floor((containerWidth + gap) / (itemWidth + gap))
         );
 
         if (e.key === 'ArrowLeft') {

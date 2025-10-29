@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocalStorageState } from 'ahooks';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
@@ -65,6 +65,14 @@ export function useS3Browser() {
   const [prefix, setPrefix] = useLocalStorageState<string>('s3fv:lastPrefix', {
     defaultValue: '',
   });
+
+  const handleResetUrlCache = useCallback(() => {
+    urlCacheRef.current.clear();
+  }, []);
+
+  useEffect(() => {
+    handleResetUrlCache();
+  }, [bucket]);
 
   async function doConnect(override?: ConnectionParams) {
     try {
@@ -152,6 +160,7 @@ export function useS3Browser() {
 
   // Refresh buckets for a connection
   async function refreshConnectionBuckets(connectionId: string) {
+    handleResetUrlCache();
     if (activeConnectionId !== connectionId) {
       notifications.show({
         message: 'Please connect to this connection first',
@@ -426,6 +435,7 @@ export function useS3Browser() {
     doConnect,
     doDisconnect,
     handleConnectionSuccess,
+    handleResetUrlCache,
     ensureObjectUrl,
     fetchBuckets,
     fetchObjects,

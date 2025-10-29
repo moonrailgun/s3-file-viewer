@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { AppShell, Modal } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useS3Browser } from './hooks/useS3Browser';
@@ -52,9 +52,6 @@ function App() {
   const [selectedFile, setSelectedFile] = useState<S3ObjectInfo | null>(null);
   const [createFolderModalOpened, setCreateFolderModalOpened] = useState(false);
 
-  // Grid container ref for keyboard navigation
-  const gridContainerRef = useRef<HTMLDivElement>(null);
-
   // File operations hook
   const fileOps = useFileOperations({
     ensureObjectUrl,
@@ -98,7 +95,6 @@ function App() {
       fileOps.deleteModalOpened ||
       createFolderModalOpened ||
       connectionOps.deleteConnectionModalOpened,
-    gridContainerRef,
     onSetSelectedFile: setSelectedFile,
     onEnterFolder: (key) => {
       setPrefix(key);
@@ -221,7 +217,6 @@ function App() {
                 onPreviewExternal={fileOps.previewInNewWindow}
                 onSelectFile={setSelectedFile}
                 ensureObjectUrl={ensureObjectUrl}
-                gridContainerRef={gridContainerRef}
               />
             </ContextMenuWrapper>
 

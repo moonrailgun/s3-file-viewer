@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
-import { ActionIcon, Group, Table } from '@mantine/core';
+import { ActionIcon, Group } from '@mantine/core';
 import { Copy, Eye, Trash2 } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -23,10 +24,11 @@ export type ObjectListTableProps = {
   selectedFileKey?: string;
 };
 
-// Row component with auto-scroll support
-const TableRow: React.FC<{
+// Virtual row component
+const VirtualRow: React.FC<{
   obj: S3ObjectInfo;
   isSelected: boolean;
+  index: number;
   onEnterDir: (key: string) => void;
   onDelete: (key: string) => void;
   onCopyUrl: (key: string) => void | Promise<void>;
@@ -35,39 +37,41 @@ const TableRow: React.FC<{
 }> = ({
   obj,
   isSelected,
+  index,
   onEnterDir,
   onDelete,
   onCopyUrl,
   onPreviewExternal,
   onSelectFile,
 }) => {
-  const rowRef = useRef<HTMLTableRowElement | null>(null);
-
-  // Auto scroll to selected item
-  useEffect(() => {
-    if (isSelected && rowRef.current) {
-      rowRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'nearest',
-      });
-    }
-  }, [isSelected]);
-
   return (
     <ContextMenu key={obj.key}>
       <ContextMenuTrigger asChild>
-        <Table.Tr
-          ref={rowRef}
+        <div
+          className="grid min-h-8 cursor-pointer items-center gap-1.5 px-3 py-0.5 text-[13px] transition-colors duration-150 select-none"
           style={{
-            cursor: 'pointer',
-            userSelect: 'none',
-            WebkitUserSelect: 'none',
-            MozUserSelect: 'none',
-            msUserSelect: 'none',
+            gridTemplateColumns: '20px 1fr 80px 130px 100px',
             backgroundColor: isSelected
               ? 'light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5))'
-              : undefined,
+              : index % 2 === 0
+                ? 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))'
+                : 'transparent',
+            borderBottom:
+              '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
+          }}
+          onMouseEnter={(e) => {
+            if (!isSelected) {
+              e.currentTarget.style.backgroundColor =
+                'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5))';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isSelected) {
+              e.currentTarget.style.backgroundColor =
+                index % 2 === 0
+                  ? 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))'
+                  : 'transparent';
+            }
           }}
           onClick={() => {
             if (obj.is_dir) {
@@ -80,40 +84,37 @@ const TableRow: React.FC<{
             !obj.is_dir ? onPreviewExternal(obj.key) : undefined
           }
         >
-          <Table.Td style={{ width: '24px' }}>
+          <div className="flex items-center">
             {getFileIconWithProps(obj.key, obj.is_dir, {
-              size: 20,
+              size: 16,
               color: 'var(--mantine-color-dimmed)',
             })}
-          </Table.Td>
-          <Table.Td>
-            <div>
+          </div>
+          <div className="min-w-0 overflow-hidden">
+            <div
+              className="text-[13px] font-medium break-words"
+              style={{
+                color: obj.is_dir
+                  ? 'var(--mantine-color-blue-6)'
+                  : 'var(--mantine-color-text)',
+              }}
+            >
+              {getFileName(obj.key)}
+            </div>
+            {obj.key !== getFileName(obj.key) && (
               <div
+                className="text-[11px] break-words"
                 style={{
-                  fontWeight: 500,
-                  color: obj.is_dir
-                    ? 'var(--mantine-color-blue-6)'
-                    : 'var(--mantine-color-text)',
+                  color: 'var(--mantine-color-dimmed)',
                 }}
               >
-                {getFileName(obj.key)}
+                {obj.key.replace(`/${getFileName(obj.key)}`, '') || '/'}
               </div>
-              {obj.key !== getFileName(obj.key) && (
-                <div
-                  style={{
-                    fontSize: '12px',
-                    color: 'var(--mantine-color-dimmed)',
-                    marginTop: '2px',
-                  }}
-                >
-                  {obj.key.replace(`/${getFileName(obj.key)}`, '') || '/'}
-                </div>
-              )}
-            </div>
-          </Table.Td>
-          <Table.Td>{obj.is_dir ? '-' : humanFileSize(obj.size)}</Table.Td>
-          <Table.Td>{obj.last_modified ?? '-'}</Table.Td>
-          <Table.Td style={{ textAlign: 'center' }}>
+            )}
+          </div>
+          <div>{obj.is_dir ? '-' : humanFileSize(obj.size)}</div>
+          <div>{obj.last_modified ?? '-'}</div>
+          <div className="flex justify-center">
             {!obj.is_dir && (
               <Group gap="xs" justify="center">
                 <ActionIcon
@@ -125,7 +126,7 @@ const TableRow: React.FC<{
                     await onCopyUrl(obj.key);
                   }}
                   title="Copy URL"
-                  style={{ transition: 'all 0.2s ease' }}
+                  className="transition-all duration-200 ease-in-out"
                 >
                   <IconCopy size={14} />
                 </ActionIcon>
@@ -138,7 +139,7 @@ const TableRow: React.FC<{
                     onPreviewExternal(obj.key);
                   }}
                   title="Preview"
-                  style={{ transition: 'all 0.2s ease' }}
+                  className="transition-all duration-200 ease-in-out"
                 >
                   <IconEye size={14} />
                 </ActionIcon>
@@ -151,14 +152,14 @@ const TableRow: React.FC<{
                     onDelete(obj.key);
                   }}
                   title="Delete"
-                  style={{ transition: 'all 0.2s ease' }}
+                  className="transition-all duration-200 ease-in-out"
                 >
                   <IconTrash size={14} />
                 </ActionIcon>
               </Group>
             )}
-          </Table.Td>
-        </Table.Tr>
+          </div>
+        </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
         {!obj.is_dir && (
@@ -205,40 +206,105 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
   onSelectFile,
   selectedFileKey,
 }) => {
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  // Initialize virtualizer with dynamic height measurement
+  const virtualizer = useVirtualizer({
+    count: objects.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 32, // Compact layout: reduced to 32px
+    overscan: 5, // Render 5 extra items above and below viewport
+    measureElement:
+      typeof window !== 'undefined' &&
+      navigator.userAgent.indexOf('Firefox') === -1
+        ? (element) => element.getBoundingClientRect().height
+        : undefined, // Enable dynamic height measurement (except Firefox for performance)
+    // Generate stable keys based on object key
+    getItemKey: (index) => objects[index]?.key ?? `item-${index}`,
+  });
+
+  // Reset scroll position when objects list changes (e.g., switching connections or directories)
+  useEffect(() => {
+    if (parentRef.current) {
+      parentRef.current.scrollTop = 0;
+    }
+  }, [objects.length > 0 ? objects[0]?.key : '']);
+
+  // Auto scroll to selected item
+  useEffect(() => {
+    if (selectedFileKey) {
+      const index = objects.findIndex((obj) => obj.key === selectedFileKey);
+      if (index !== -1) {
+        virtualizer.scrollToIndex(index, {
+          align: 'center',
+          behavior: 'smooth',
+        });
+      }
+    }
+  }, [selectedFileKey, objects, virtualizer]);
+
   return (
-    <Table
-      striped
-      highlightOnHover
-      withTableBorder
+    <div
+      className="flex h-full flex-col overflow-hidden rounded-lg shadow-sm"
       style={{
-        borderRadius: '8px',
-        overflow: 'hidden',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        border:
+          '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
+        backgroundColor: 'var(--mantine-color-body)',
       }}
     >
-      <Table.Thead>
-        <Table.Tr>
-          <Table.Th style={{ width: '24px' }}></Table.Th>
-          <Table.Th>Name</Table.Th>
-          <Table.Th>Size</Table.Th>
-          <Table.Th>Modified</Table.Th>
-          <Table.Th style={{ width: '120px' }}>Actions</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
-        {objects.map((o) => (
-          <TableRow
-            key={o.key}
-            obj={o}
-            isSelected={selectedFileKey === o.key}
-            onEnterDir={onEnterDir}
-            onDelete={onDelete}
-            onCopyUrl={onCopyUrl}
-            onPreviewExternal={onPreviewExternal}
-            onSelectFile={onSelectFile}
-          />
-        ))}
-      </Table.Tbody>
-    </Table>
+      {/* Table Header */}
+      <div
+        className="sticky top-0 z-10 grid gap-1.5 px-3 py-1 text-xs font-semibold"
+        style={{
+          gridTemplateColumns: '20px 1fr 80px 130px 100px',
+          backgroundColor:
+            'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))',
+          borderBottom:
+            '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
+        }}
+      >
+        <div></div>
+        <div>Name</div>
+        <div>Size</div>
+        <div>Modified</div>
+        <div className="text-center">Actions</div>
+      </div>
+
+      {/* Scrollable Body */}
+      <div ref={parentRef} className="relative flex-1 overflow-auto">
+        <div
+          className="relative w-full"
+          style={{
+            height: `${virtualizer.getTotalSize()}px`,
+          }}
+        >
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const obj = objects[virtualRow.index];
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                className="absolute top-0 left-0 w-full"
+                style={{
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <VirtualRow
+                  obj={obj}
+                  isSelected={selectedFileKey === obj.key}
+                  index={virtualRow.index}
+                  onEnterDir={onEnterDir}
+                  onDelete={onDelete}
+                  onCopyUrl={onCopyUrl}
+                  onPreviewExternal={onPreviewExternal}
+                  onSelectFile={onSelectFile}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 };

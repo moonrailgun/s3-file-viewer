@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Group, Stack, Text, ActionIcon, Box } from '@mantine/core';
 import { useInViewport } from 'ahooks';
 import { IconCopy, IconEye, IconTrash } from '@tabler/icons-react';
@@ -45,6 +45,18 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
 }) => {
   const imgRef = useRef<HTMLDivElement | null>(null);
   const [inView] = useInViewport(imgRef);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto scroll to selected item
+  useEffect(() => {
+    if (selectedFileKey === obj.key && containerRef.current) {
+      containerRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'nearest',
+      });
+    }
+  }, [selectedFileKey, obj.key]);
 
   // Get file icon props
   const iconProps = { size: 48, color: 'var(--mantine-color-dimmed)' };
@@ -57,6 +69,7 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
     <ContextMenu key={obj.key}>
       <ContextMenuTrigger asChild>
         <Stack
+          ref={containerRef}
           p="xs"
           gap="xs"
           style={{

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { ActionIcon, Group, Table } from '@mantine/core';
 import { Copy, Eye, Trash2 } from 'lucide-react';
 import {
@@ -23,43 +23,65 @@ export type ObjectListTableProps = {
   selectedFileKey?: string;
 };
 
-export const ObjectListTable: React.FC<ObjectListTableProps> = ({
-  objects,
+// Row component with auto-scroll support
+const TableRow: React.FC<{
+  obj: S3ObjectInfo;
+  isSelected: boolean;
+  onEnterDir: (key: string) => void;
+  onDelete: (key: string) => void;
+  onCopyUrl: (key: string) => void | Promise<void>;
+  onPreviewExternal: (key: string) => void | Promise<void>;
+  onSelectFile?: (file: S3ObjectInfo) => void;
+}> = ({
+  obj,
+  isSelected,
   onEnterDir,
   onDelete,
   onCopyUrl,
   onPreviewExternal,
   onSelectFile,
-  selectedFileKey,
 }) => {
-  const rows = objects.map((o) => (
-    <ContextMenu key={o.key}>
+  const rowRef = useRef<HTMLTableRowElement | null>(null);
+
+  // Auto scroll to selected item
+  useEffect(() => {
+    if (isSelected && rowRef.current) {
+      rowRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'nearest',
+      });
+    }
+  }, [isSelected]);
+
+  return (
+    <ContextMenu key={obj.key}>
       <ContextMenuTrigger asChild>
         <Table.Tr
+          ref={rowRef}
           style={{
             cursor: 'pointer',
             userSelect: 'none',
             WebkitUserSelect: 'none',
             MozUserSelect: 'none',
             msUserSelect: 'none',
-            backgroundColor:
-              selectedFileKey === o.key
-                ? 'light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5))'
-                : undefined,
+            backgroundColor: isSelected
+              ? 'light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5))'
+              : undefined,
           }}
           onClick={() => {
-            if (o.is_dir) {
-              onEnterDir(o.key);
+            if (obj.is_dir) {
+              onEnterDir(obj.key);
             } else if (onSelectFile) {
-              onSelectFile(o);
+              onSelectFile(obj);
             }
           }}
           onDoubleClick={() =>
-            !o.is_dir ? onPreviewExternal(o.key) : undefined
+            !obj.is_dir ? onPreviewExternal(obj.key) : undefined
           }
         >
           <Table.Td style={{ width: '24px' }}>
-            {getFileIconWithProps(o.key, o.is_dir, {
+            {getFileIconWithProps(obj.key, obj.is_dir, {
               size: 20,
               color: 'var(--mantine-color-dimmed)',
             })}
@@ -69,14 +91,14 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
               <div
                 style={{
                   fontWeight: 500,
-                  color: o.is_dir
+                  color: obj.is_dir
                     ? 'var(--mantine-color-blue-6)'
                     : 'var(--mantine-color-text)',
                 }}
               >
-                {getFileName(o.key)}
+                {getFileName(obj.key)}
               </div>
-              {o.key !== getFileName(o.key) && (
+              {obj.key !== getFileName(obj.key) && (
                 <div
                   style={{
                     fontSize: '12px',
@@ -84,15 +106,15 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
                     marginTop: '2px',
                   }}
                 >
-                  {o.key.replace(`/${getFileName(o.key)}`, '') || '/'}
+                  {obj.key.replace(`/${getFileName(obj.key)}`, '') || '/'}
                 </div>
               )}
             </div>
           </Table.Td>
-          <Table.Td>{o.is_dir ? '-' : humanFileSize(o.size)}</Table.Td>
-          <Table.Td>{o.last_modified ?? '-'}</Table.Td>
+          <Table.Td>{obj.is_dir ? '-' : humanFileSize(obj.size)}</Table.Td>
+          <Table.Td>{obj.last_modified ?? '-'}</Table.Td>
           <Table.Td style={{ textAlign: 'center' }}>
-            {!o.is_dir && (
+            {!obj.is_dir && (
               <Group gap="xs" justify="center">
                 <ActionIcon
                   variant="light"
@@ -100,7 +122,7 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
                   size="sm"
                   onClick={async (e) => {
                     e.stopPropagation();
-                    await onCopyUrl(o.key);
+                    await onCopyUrl(obj.key);
                   }}
                   title="Copy URL"
                   style={{ transition: 'all 0.2s ease' }}
@@ -113,7 +135,7 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onPreviewExternal(o.key);
+                    onPreviewExternal(obj.key);
                   }}
                   title="Preview"
                   style={{ transition: 'all 0.2s ease' }}
@@ -126,7 +148,7 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDelete(o.key);
+                    onDelete(obj.key);
                   }}
                   title="Delete"
                   style={{ transition: 'all 0.2s ease' }}
@@ -139,11 +161,11 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
         </Table.Tr>
       </ContextMenuTrigger>
       <ContextMenuContent>
-        {!o.is_dir && (
+        {!obj.is_dir && (
           <>
             <ContextMenuItem
               onClick={async () => {
-                await onCopyUrl(o.key);
+                await onCopyUrl(obj.key);
               }}
             >
               <Copy className="mr-2 h-4 w-4" />
@@ -151,7 +173,7 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
             </ContextMenuItem>
             <ContextMenuItem
               onClick={() => {
-                onPreviewExternal(o.key);
+                onPreviewExternal(obj.key);
               }}
             >
               <Eye className="mr-2 h-4 w-4" />
@@ -163,7 +185,7 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
         <ContextMenuItem
           variant="destructive"
           onClick={() => {
-            onDelete(o.key);
+            onDelete(obj.key);
           }}
         >
           <Trash2 className="mr-2 h-4 w-4" />
@@ -171,8 +193,18 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
-  ));
+  );
+};
 
+export const ObjectListTable: React.FC<ObjectListTableProps> = ({
+  objects,
+  onEnterDir,
+  onDelete,
+  onCopyUrl,
+  onPreviewExternal,
+  onSelectFile,
+  selectedFileKey,
+}) => {
   return (
     <Table
       striped
@@ -193,7 +225,20 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
           <Table.Th style={{ width: '120px' }}>Actions</Table.Th>
         </Table.Tr>
       </Table.Thead>
-      <Table.Tbody>{rows}</Table.Tbody>
+      <Table.Tbody>
+        {objects.map((o) => (
+          <TableRow
+            key={o.key}
+            obj={o}
+            isSelected={selectedFileKey === o.key}
+            onEnterDir={onEnterDir}
+            onDelete={onDelete}
+            onCopyUrl={onCopyUrl}
+            onPreviewExternal={onPreviewExternal}
+            onSelectFile={onSelectFile}
+          />
+        ))}
+      </Table.Tbody>
     </Table>
   );
 };

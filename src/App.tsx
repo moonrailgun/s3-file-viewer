@@ -90,6 +90,9 @@ function App() {
   // File upload ref for context menu
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Grid container ref for calculating columns
+  const gridContainerRef = useRef<HTMLDivElement>(null);
+
   // File drag and drop handling
   const { isDragging, dragHandlers } = useFileDrop({
     onFilesDropped: async (files) => {
@@ -145,6 +148,124 @@ function App() {
       unlisten.then((fn) => fn());
     };
   }, []);
+
+  // Keyboard navigation support
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if there's no bucket or objects, or if modals are open
+      if (
+        !bucket ||
+        objects.length === 0 ||
+        deleteModalOpened ||
+        createFolderModalOpened ||
+        deleteConnectionModalOpened
+      ) {
+        return;
+      }
+
+      // Skip if user is typing in an input/textarea
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      const currentIndex = selectedFile
+        ? objects.findIndex((o) => o.key === selectedFile.key)
+        : -1;
+
+      // Handle Enter key - open folder or preview file
+      if (e.key === 'Enter') {
+        if (selectedFile) {
+          e.preventDefault();
+          if (selectedFile.is_dir) {
+            setPrefix(selectedFile.key);
+            setSelectedFile(null);
+          } else {
+            previewInNewWindow(selectedFile.key);
+          }
+        }
+        return;
+      }
+
+      // Navigation logic based on view mode
+      if (view === 'list') {
+        // List view: up/down navigation
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (currentIndex > 0) {
+            setSelectedFile(objects[currentIndex - 1]);
+          } else if (currentIndex === -1 && objects.length > 0) {
+            setSelectedFile(objects[0]);
+          }
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (currentIndex < objects.length - 1) {
+            setSelectedFile(objects[currentIndex + 1]);
+          } else if (currentIndex === -1 && objects.length > 0) {
+            setSelectedFile(objects[0]);
+          }
+        }
+      } else {
+        // Grid view: 4-directional navigation
+        // Calculate columns based on container width
+        const containerWidth = gridContainerRef.current?.clientWidth || 0;
+        const itemWidth = 220; // ObjectThumb width
+        const gap = 2; // gap value from Group
+        const columns = Math.max(
+          1,
+          Math.floor(containerWidth / (itemWidth + gap))
+        );
+
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          if (currentIndex > 0) {
+            setSelectedFile(objects[currentIndex - 1]);
+          } else if (currentIndex === -1 && objects.length > 0) {
+            setSelectedFile(objects[0]);
+          }
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          if (currentIndex < objects.length - 1) {
+            setSelectedFile(objects[currentIndex + 1]);
+          } else if (currentIndex === -1 && objects.length > 0) {
+            setSelectedFile(objects[0]);
+          }
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          const newIndex = currentIndex - columns;
+          if (newIndex >= 0) {
+            setSelectedFile(objects[newIndex]);
+          } else if (currentIndex === -1 && objects.length > 0) {
+            setSelectedFile(objects[0]);
+          }
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          const newIndex = currentIndex + columns;
+          if (newIndex < objects.length) {
+            setSelectedFile(objects[newIndex]);
+          } else if (currentIndex === -1 && objects.length > 0) {
+            setSelectedFile(objects[0]);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    bucket,
+    objects,
+    selectedFile,
+    view,
+    deleteModalOpened,
+    createFolderModalOpened,
+    deleteConnectionModalOpened,
+    setPrefix,
+  ]);
 
   const breadcrumbItems = useMemo(() => {
     const parts = (prefix || '').replace(/\/+$/, '').split('/').filter(Boolean);
@@ -531,7 +652,12 @@ function App() {
                     />
                   ) : (
                     <>
-                      <Group justify="start" align="normal" gap={2}>
+                      <Group
+                        ref={gridContainerRef}
+                        justify="start"
+                        align="normal"
+                        gap={2}
+                      >
                         {objects.map((o) => (
                           <ObjectThumb
                             key={o.key}

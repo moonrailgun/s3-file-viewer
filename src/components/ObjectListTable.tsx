@@ -10,7 +10,7 @@ import {
   ContextMenuSeparator,
 } from '@/components/ui/context-menu';
 import { S3ObjectInfo } from '../types';
-import { humanFileSize, getFileName } from '../utils/common';
+import { humanFileSize, getFileName, formatDateTime } from '../utils/common';
 import { IconTrash, IconCopy, IconEye } from '@tabler/icons-react';
 import { getFileIconWithProps } from '../utils/icons';
 
@@ -113,7 +113,7 @@ const VirtualRow: React.FC<{
             )}
           </div>
           <div>{obj.is_dir ? '-' : humanFileSize(obj.size)}</div>
-          <div>{obj.last_modified ?? '-'}</div>
+          <div className="text-nowrap">{formatDateTime(obj.last_modified)}</div>
           <div className="flex justify-center">
             {!obj.is_dir && (
               <Group gap="xs" justify="center">

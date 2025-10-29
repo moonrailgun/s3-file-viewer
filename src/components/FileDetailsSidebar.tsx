@@ -16,6 +16,7 @@ import {
   isImageKey,
   isVideoKey,
   isAudioKey,
+  formatDateTime,
 } from '../utils/common';
 import { getFileIconWithProps } from '../utils/icons';
 import { ImagePreview } from './ImagePreview';
@@ -177,7 +178,7 @@ export const FileDetailsSidebar: React.FC<FileDetailsSidebarProps> = ({
             <Text size="xs" c="dimmed" mb={4}>
               Last Modified
             </Text>
-            <Text size="sm">{file.last_modified}</Text>
+            <Text size="sm">{formatDateTime(file.last_modified)}</Text>
           </Box>
         )}
 

@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.1.0](https://github.com/moonrailgun/s3-file-viewer/compare/v1.0.0...v1.1.0) (2025-10-30)
+
+### Features
+
+* add audio preview feature which make everything easy ([ad91d68](https://github.com/moonrailgun/s3-file-viewer/commit/ad91d68d9f2e9db641f6ace7ee7eeec3058c9715))
+* add bucket detail modal ([95fbdb6](https://github.com/moonrailgun/s3-file-viewer/commit/95fbdb684fde49d434aff27db9a83e69f5e1fab7))
+* add create bucket feature ([e758429](https://github.com/moonrailgun/s3-file-viewer/commit/e758429f45ef247f19fc9ce6f90d316c8051f2fe))
+* add current bucket name in main area ([76ff022](https://github.com/moonrailgun/s3-file-viewer/commit/76ff0227e51106c4a5af296dbb33d7bf0ccd4161))
+* add download feature ([43d2c6a](https://github.com/moonrailgun/s3-file-viewer/commit/43d2c6a79d6c5cc165c88d318c0a6738fcb0849d))
+* add drag and drop upload fetch ([21c142e](https://github.com/moonrailgun/s3-file-viewer/commit/21c142ed2da38f158846f86e7cff10466b7bf3cd))
+* add file sidebar which can inspect file info ([906ea2a](https://github.com/moonrailgun/s3-file-viewer/commit/906ea2afe5bbf0a61816dfc668897d58886754a2))
+* add loading feature for preview ([1de542c](https://github.com/moonrailgun/s3-file-viewer/commit/1de542c9131e4ad6226e7ca09b90c9c93fccc211))
+* add mobile layout support ([b07091e](https://github.com/moonrailgun/s3-file-viewer/commit/b07091e75a393ab1a6fc0665a56e3a482db9c163))
+* add search file feature ([030c588](https://github.com/moonrailgun/s3-file-viewer/commit/030c58881667f65a38e24f09656dffcea9915c28))
+* add video preview for file details ([7b50973](https://github.com/moonrailgun/s3-file-viewer/commit/7b50973045bebc3b5696f965c860cce30e4a5953))
+* implement global hotkeys for search, refresh, and upload actions in CompactToolbar ([908494a](https://github.com/moonrailgun/s3-file-viewer/commit/908494a813c559a433953e8b20d23749a7ea16e4))
+* implement keyboard navigation and auto-scroll for file selection in grid and list views ([cc77c8c](https://github.com/moonrailgun/s3-file-viewer/commit/cc77c8c8e2746ad4878df6d24c9dad00f6bb7f35))
+* improve breadcrumbs display ([f61baf8](https://github.com/moonrailgun/s3-file-viewer/commit/f61baf88a3a9957a3ff7b3ba9a5fa7e60b9151db))
+* improve connection sidebar style and add region badge ([4ed215a](https://github.com/moonrailgun/s3-file-viewer/commit/4ed215adbca83c2e5a5436bd5ad93e016ffcfad1))
+* improve date formatting for last modified timestamps ([792fee4](https://github.com/moonrailgun/s3-file-viewer/commit/792fee4159575b54e258ce5811cf06ae6d94ea73))
+
+### Bug Fixes
+
+* fix a bug which will loop fetch on load error ([7ed1048](https://github.com/moonrailgun/s3-file-viewer/commit/7ed1048fd2cbcaef988bce90b36b9a1696a30299))
+
+### Others
+
+* add virtualization capabilities to optimize performance ([1f5e27a](https://github.com/moonrailgun/s3-file-viewer/commit/1f5e27a33d4cacceaba943df33850a584e0c1bef))
+* refactor total app which make sure code not tool long ([84a2ffb](https://github.com/moonrailgun/s3-file-viewer/commit/84a2ffb1212f8a0ca0d8aae26383afa5a7df0d49))
+* resolve warning ([90eff8b](https://github.com/moonrailgun/s3-file-viewer/commit/90eff8b35628c9cb6de48bc633788468bf93ccf9))
+
 ## [1.0.0](https://github.com/moonrailgun/s3-file-viewer/compare/v0.2.0...v1.0.0) (2025-10-24)
 
 ### Features

@@ -19,7 +19,7 @@ import {
   IconPlugConnected,
   IconX,
 } from '@tabler/icons-react';
-import { RefreshCw, Trash2, Plus, Edit } from 'lucide-react';
+import { RefreshCw, Trash2, Plus, Edit, Database } from 'lucide-react';
 import { listen } from '@tauri-apps/api/event';
 import {
   ContextMenu,
@@ -45,6 +45,7 @@ export type ConnectionSidebarProps = {
   onSelectConnection: (connectionId: string) => void;
   onSelectBucket: (connectionId: string, bucketName: string) => void;
   onRefreshBuckets: (connectionId: string) => void;
+  onCreateBucket: (connectionId: string) => void;
   onEditConnection: (connectionId: string) => void;
   onRequestDeleteConnection: (
     connectionId: string,
@@ -64,6 +65,7 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
   onSelectConnection,
   onSelectBucket,
   onRefreshBuckets,
+  onCreateBucket,
   onEditConnection,
   onRequestDeleteConnection,
   onCloseMobile,
@@ -285,6 +287,16 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
                           >
                             <RefreshCw className="mr-2 h-4 w-4" />
                             Refresh Buckets
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            disabled={!active}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCreateBucket(conn.id);
+                            }}
+                          >
+                            <Database className="mr-2 h-4 w-4" />
+                            Create Bucket
                           </ContextMenuItem>
                           <ContextMenuSeparator />
                           <ContextMenuItem

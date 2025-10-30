@@ -337,6 +337,38 @@ export function useS3Browser() {
     await invoke('create_folder', { bucket, folderKey: key });
   }
 
+  async function createBucket(bucketName: string, region: string) {
+    try {
+      await invoke('create_bucket', { bucketName, region });
+
+      notifications.show({
+        message: `Bucket "${bucketName}" created successfully`,
+        color: 'green',
+        position: 'bottom-right',
+      });
+
+      // Refresh bucket list after creation
+      if (activeConnectionId) {
+        const bucketList = (await invoke('list_buckets')) as BucketInfo[];
+        setConnectionBuckets((prev) =>
+          new Map(prev).set(activeConnectionId, bucketList)
+        );
+        setBuckets(bucketList);
+
+        // Auto-select the newly created bucket
+        setBucket(bucketName);
+        setPrefix('');
+      }
+    } catch (err: any) {
+      notifications.show({
+        message: `Failed to create bucket: ${err}`,
+        color: 'red',
+        position: 'bottom-right',
+      });
+      throw err; // Re-throw so modal can handle it
+    }
+  }
+
   async function uploadFile(file: File): Promise<string> {
     if (!bucket) throw new Error('No bucket selected');
 
@@ -453,6 +485,7 @@ export function useS3Browser() {
     fetchObjects,
     deleteObject,
     createFolder,
+    createBucket,
     uploadFile,
     // Multi-connection actions
     connectToSavedConnection,

@@ -34,12 +34,14 @@ function App() {
     activeConnectionId,
     connectionBuckets,
     connectionLoading,
+    connSafe,
     setView,
     setPrefix,
     ensureObjectUrl,
     fetchObjects,
     deleteObject,
     createFolder,
+    createBucket,
     uploadFile,
     connectToSavedConnection,
     refreshConnectionBuckets,
@@ -52,6 +54,7 @@ function App() {
   const [previewTitle, setPreviewTitle] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<S3ObjectInfo | null>(null);
   const [createFolderModalOpened, setCreateFolderModalOpened] = useState(false);
+  const [createBucketModalOpened, setCreateBucketModalOpened] = useState(false);
 
   // Mobile sidebar state
   const [navbarOpened, { toggle: toggleNavbar, close: closeNavbar }] =
@@ -101,6 +104,7 @@ function App() {
     modalsOpen:
       fileOps.deleteModalOpened ||
       createFolderModalOpened ||
+      createBucketModalOpened ||
       connectionOps.deleteConnectionModalOpened,
     onSetSelectedFile: setSelectedFile,
     onEnterFolder: (key) => {
@@ -145,6 +149,19 @@ function App() {
     [fileOps]
   );
 
+  // Handle bucket creation
+  const handleCreateBucket = useCallback(
+    async (bucketName: string, region: string) => {
+      try {
+        await createBucket(bucketName, region);
+        setCreateBucketModalOpened(false);
+      } catch (err) {
+        // Error already handled in createBucket
+      }
+    },
+    [createBucket]
+  );
+
   return (
     <AppShell
       navbar={{
@@ -178,6 +195,7 @@ function App() {
             if (isMobile) closeNavbar();
           }}
           onRefreshBuckets={refreshConnectionBuckets}
+          onCreateBucket={() => setCreateBucketModalOpened(true)}
           onEditConnection={openEditConnectionForm}
           onRequestDeleteConnection={
             connectionOps.handleRequestDeleteConnection
@@ -304,6 +322,10 @@ function App() {
             setCreateFolderModalOpened(false);
           }
         }}
+        createBucketModalOpened={createBucketModalOpened}
+        onCreateBucketClose={() => setCreateBucketModalOpened(false)}
+        onCreateBucketConfirm={handleCreateBucket}
+        currentRegion={connSafe.region}
         deleteConnectionModalOpened={connectionOps.deleteConnectionModalOpened}
         connectionToDelete={connectionOps.connectionToDelete}
         onDeleteConnectionClose={connectionOps.handleDeleteConnectionClose}

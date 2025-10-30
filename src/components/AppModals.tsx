@@ -1,6 +1,7 @@
 import React from 'react';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { CreateFolderModal } from './CreateFolderModal';
+import { CreateBucketModal } from './CreateBucketModal';
 import { ConfirmModal } from './ConfirmModal';
 
 interface AppModalsProps {
@@ -15,6 +16,12 @@ interface AppModalsProps {
   createFolderModalOpened: boolean;
   onCreateFolderClose: () => void;
   onCreateFolderConfirm: (name: string) => Promise<void>;
+
+  // Create bucket modal
+  createBucketModalOpened: boolean;
+  onCreateBucketClose: () => void;
+  onCreateBucketConfirm: (bucketName: string, region: string) => Promise<void>;
+  currentRegion: string;
 
   // Delete connection modal
   deleteConnectionModalOpened: boolean;
@@ -37,6 +44,10 @@ export const AppModals = React.memo(
     createFolderModalOpened,
     onCreateFolderClose,
     onCreateFolderConfirm,
+    createBucketModalOpened,
+    onCreateBucketClose,
+    onCreateBucketConfirm,
+    currentRegion,
     deleteConnectionModalOpened,
     connectionToDelete,
     onDeleteConnectionClose,
@@ -58,6 +69,14 @@ export const AppModals = React.memo(
           opened={createFolderModalOpened}
           onClose={onCreateFolderClose}
           onConfirm={onCreateFolderConfirm}
+        />
+
+        {/* Create Bucket Modal */}
+        <CreateBucketModal
+          opened={createBucketModalOpened}
+          onClose={onCreateBucketClose}
+          onConfirm={onCreateBucketConfirm}
+          currentRegion={currentRegion}
         />
 
         {/* Delete Connection Confirmation Modal */}

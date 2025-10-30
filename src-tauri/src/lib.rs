@@ -207,6 +207,45 @@ async fn list_buckets(
 }
 
 #[tauri::command]
+async fn create_bucket(
+    bucket_name: String,
+    region: String,
+    state: tauri::State<'_, tokio::sync::Mutex<Option<AppState>>>,
+) -> Result<(), String> {
+    println!(
+        "[create_bucket] Creating bucket: {} in region: {}",
+        bucket_name, region
+    );
+
+    let guard = state.lock().await;
+    let app = guard.as_ref().ok_or("Not connected")?;
+
+    // Create bucket with specified region
+    let mut req = app.s3_client.create_bucket().bucket(&bucket_name);
+
+    // For regions other than us-east-1, we need to set location constraint
+    // us-east-1 is special and should not have a location constraint
+    if region != "us-east-1" {
+        use aws_sdk_s3::types::{BucketLocationConstraint, CreateBucketConfiguration};
+
+        let location_constraint = BucketLocationConstraint::from(region.as_str());
+        let create_bucket_config = CreateBucketConfiguration::builder()
+            .location_constraint(location_constraint)
+            .build();
+
+        req = req.create_bucket_configuration(create_bucket_config);
+    }
+
+    req.send().await.map_err(|e| format_s3_error(&e))?;
+
+    println!(
+        "[create_bucket] Successfully created bucket: {}",
+        bucket_name
+    );
+    Ok(())
+}
+
+#[tauri::command]
 async fn list_objects(
     bucket: String,
     prefix: Option<String>,
@@ -498,6 +537,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             connect,
             list_buckets,
+            create_bucket,
             list_objects,
             create_folder,
             delete_object,

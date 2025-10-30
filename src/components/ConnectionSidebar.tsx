@@ -19,7 +19,7 @@ import {
   IconPlugConnected,
   IconX,
 } from '@tabler/icons-react';
-import { RefreshCw, Trash2, Plus, Edit, Database } from 'lucide-react';
+import { RefreshCw, Trash2, Plus, Edit, Database, Info } from 'lucide-react';
 import { listen } from '@tauri-apps/api/event';
 import {
   ContextMenu,
@@ -51,6 +51,7 @@ export type ConnectionSidebarProps = {
     connectionId: string,
     connectionName: string
   ) => void;
+  onShowBucketDetails: (bucket: BucketInfo) => void;
   // Mobile support
   onCloseMobile?: () => void;
   isMobile?: boolean;
@@ -68,6 +69,7 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
   onCreateBucket,
   onEditConnection,
   onRequestDeleteConnection,
+  onShowBucketDetails,
   onCloseMobile,
   isMobile = false,
 }) => {
@@ -343,31 +345,45 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
                               const isSelected =
                                 selectedBucket === bucket.name && active;
                               return (
-                                <UnstyledButton
-                                  key={bucket.name}
-                                  onClick={() =>
-                                    onSelectBucket(conn.id, bucket.name)
-                                  }
-                                  style={{
-                                    padding: '4px 8px',
-                                    borderRadius: '4px',
-                                    backgroundColor: isSelected
-                                      ? 'light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5))'
-                                      : 'transparent',
-                                  }}
-                                  className="connection-sidebar-item"
-                                >
-                                  <Group gap={6} wrap="nowrap">
-                                    <IconDatabase
-                                      className="shrink-0"
-                                      size={12}
-                                      color="var(--mantine-color-blue-6)"
-                                    />
-                                    <Text size="xs" truncate>
-                                      {bucket.name}
-                                    </Text>
-                                  </Group>
-                                </UnstyledButton>
+                                <ContextMenu key={bucket.name}>
+                                  <ContextMenuTrigger asChild>
+                                    <UnstyledButton
+                                      onClick={() =>
+                                        onSelectBucket(conn.id, bucket.name)
+                                      }
+                                      style={{
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        backgroundColor: isSelected
+                                          ? 'light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5))'
+                                          : 'transparent',
+                                      }}
+                                      className="connection-sidebar-item"
+                                    >
+                                      <Group gap={6} wrap="nowrap">
+                                        <IconDatabase
+                                          className="shrink-0"
+                                          size={12}
+                                          color="var(--mantine-color-blue-6)"
+                                        />
+                                        <Text size="xs" truncate>
+                                          {bucket.name}
+                                        </Text>
+                                      </Group>
+                                    </UnstyledButton>
+                                  </ContextMenuTrigger>
+                                  <ContextMenuContent>
+                                    <ContextMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onShowBucketDetails(bucket);
+                                      }}
+                                    >
+                                      <Info className="mr-2 h-4 w-4" />
+                                      Bucket Details
+                                    </ContextMenuItem>
+                                  </ContextMenuContent>
+                                </ContextMenu>
                               );
                             })
                           )}

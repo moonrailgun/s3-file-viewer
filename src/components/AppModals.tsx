@@ -2,7 +2,9 @@ import React from 'react';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { CreateFolderModal } from './CreateFolderModal';
 import { CreateBucketModal } from './CreateBucketModal';
+import { BucketDetailsModal } from './BucketDetailsModal';
 import { ConfirmModal } from './ConfirmModal';
+import type { BucketInfo } from '../types';
 
 interface AppModalsProps {
   // Delete file modal
@@ -28,6 +30,11 @@ interface AppModalsProps {
   connectionToDelete: { id: string; name: string } | null;
   onDeleteConnectionClose: () => void;
   onDeleteConnectionConfirm: () => void;
+
+  // Bucket details modal
+  bucketDetailsModalOpened: boolean;
+  bucketToShow: BucketInfo | null;
+  onBucketDetailsClose: () => void;
 }
 
 /**
@@ -52,6 +59,9 @@ export const AppModals = React.memo(
     connectionToDelete,
     onDeleteConnectionClose,
     onDeleteConnectionConfirm,
+    bucketDetailsModalOpened,
+    bucketToShow,
+    onBucketDetailsClose,
   }: AppModalsProps) => {
     return (
       <>
@@ -89,6 +99,13 @@ export const AppModals = React.memo(
           itemName={connectionToDelete?.name || ''}
           confirmLabel="Delete"
           confirmColor="red"
+        />
+
+        {/* Bucket Details Modal */}
+        <BucketDetailsModal
+          opened={bucketDetailsModalOpened}
+          onClose={onBucketDetailsClose}
+          bucket={bucketToShow}
         />
       </>
     );

@@ -89,6 +89,37 @@ struct S3ObjectInfo {
 struct BucketInfo {
     name: String,
     region: String,
+    creation_date: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct BucketDetails {
+    // Versioning
+    versioning_enabled: bool,
+    versioning_status: Option<String>,
+
+    // Encryption
+    encryption_enabled: bool,
+    encryption_type: Option<String>,
+
+    // Public access block
+    block_public_acls: Option<bool>,
+    ignore_public_acls: Option<bool>,
+    block_public_policy: Option<bool>,
+    restrict_public_buckets: Option<bool>,
+
+    // Lifecycle rules
+    lifecycle_rules_count: usize,
+
+    // Tags
+    tags_count: usize,
+
+    // CORS
+    cors_enabled: bool,
+
+    // Logging
+    logging_enabled: bool,
+    logging_target_bucket: Option<String>,
 }
 
 #[tauri::command]
@@ -170,22 +201,30 @@ async fn list_buckets(
         .await
         .map_err(|e| format_s3_error(&e))?;
 
-    let names: Vec<String> = resp
+    // Collect bucket names and creation dates
+    let bucket_data: Vec<(String, Option<String>)> = resp
         .buckets()
         .iter()
-        .filter_map(|b| b.name().map(|n| n.to_string()))
+        .filter_map(|b| {
+            b.name().map(|n| {
+                let creation_date = b
+                    .creation_date()
+                    .and_then(|d| d.fmt(aws_smithy_types::date_time::Format::DateTime).ok());
+                (n.to_string(), creation_date)
+            })
+        })
         .collect();
 
     // Concurrently fetch locations
-    let futs = names
+    let futs = bucket_data
         .iter()
-        .map(|name| app.s3_client.get_bucket_location().bucket(name).send());
+        .map(|(name, _)| app.s3_client.get_bucket_location().bucket(name).send());
     let results = future::join_all(futs).await;
 
-    let infos = names
+    let infos = bucket_data
         .into_iter()
         .zip(results)
-        .map(|(name, res)| {
+        .map(|((name, creation_date), res)| {
             let region = match res {
                 Ok(loc_resp) => loc_resp
                     .location_constraint()
@@ -199,7 +238,11 @@ async fn list_buckets(
                     "us-east-1".to_string()
                 }
             };
-            BucketInfo { name, region }
+            BucketInfo {
+                name,
+                region,
+                creation_date,
+            }
         })
         .collect::<Vec<_>>();
 
@@ -544,7 +587,8 @@ pub fn run() {
             upload_object,
             upload_object_with_progress,
             get_object_url,
-            download_object
+            download_object,
+            get_bucket_details
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -615,4 +659,177 @@ async fn download_object(
         save_path
     );
     Ok(())
+}
+
+#[tauri::command]
+async fn get_bucket_details(
+    bucket: String,
+    state: tauri::State<'_, tokio::sync::Mutex<Option<AppState>>>,
+) -> Result<BucketDetails, String> {
+    println!(
+        "[get_bucket_details] Fetching details for bucket: {}",
+        bucket
+    );
+
+    let guard = state.lock().await;
+    let app = guard.as_ref().ok_or("Not connected")?;
+
+    // Get versioning status
+    let (versioning_enabled, versioning_status) = match app
+        .s3_client
+        .get_bucket_versioning()
+        .bucket(&bucket)
+        .send()
+        .await
+    {
+        Ok(resp) => {
+            let status = resp.status().map(|s| s.as_str().to_string());
+            let enabled = status.as_ref().map(|s| s == "Enabled").unwrap_or(false);
+            (enabled, status)
+        }
+        Err(e) => {
+            eprintln!("[get_bucket_details] get_bucket_versioning failed: {}", e);
+            (false, None)
+        }
+    };
+
+    // Get encryption configuration
+    let (encryption_enabled, encryption_type) = match app
+        .s3_client
+        .get_bucket_encryption()
+        .bucket(&bucket)
+        .send()
+        .await
+    {
+        Ok(resp) => {
+            if let Some(rules) = resp
+                .server_side_encryption_configuration()
+                .and_then(|config| config.rules().first())
+            {
+                let enc_type = rules
+                    .apply_server_side_encryption_by_default()
+                    .map(|default| default.sse_algorithm().as_str().to_string());
+                (true, enc_type)
+            } else {
+                (false, None)
+            }
+        }
+        Err(e) => {
+            eprintln!("[get_bucket_details] get_bucket_encryption failed: {}", e);
+            (false, None)
+        }
+    };
+
+    // Get public access block configuration
+    let (block_public_acls, ignore_public_acls, block_public_policy, restrict_public_buckets) =
+        match app
+            .s3_client
+            .get_public_access_block()
+            .bucket(&bucket)
+            .send()
+            .await
+        {
+            Ok(resp) => {
+                if let Some(config) = resp.public_access_block_configuration() {
+                    (
+                        config.block_public_acls(),
+                        config.ignore_public_acls(),
+                        config.block_public_policy(),
+                        config.restrict_public_buckets(),
+                    )
+                } else {
+                    (None, None, None, None)
+                }
+            }
+            Err(e) => {
+                eprintln!("[get_bucket_details] get_public_access_block failed: {}", e);
+                (None, None, None, None)
+            }
+        };
+
+    // Get lifecycle rules count
+    let lifecycle_rules_count = match app
+        .s3_client
+        .get_bucket_lifecycle_configuration()
+        .bucket(&bucket)
+        .send()
+        .await
+    {
+        Ok(resp) => resp.rules().len(),
+        Err(e) => {
+            eprintln!(
+                "[get_bucket_details] get_bucket_lifecycle_configuration failed: {}",
+                e
+            );
+            0
+        }
+    };
+
+    // Get tags count
+    let tags_count = match app
+        .s3_client
+        .get_bucket_tagging()
+        .bucket(&bucket)
+        .send()
+        .await
+    {
+        Ok(resp) => resp.tag_set().len(),
+        Err(e) => {
+            eprintln!("[get_bucket_details] get_bucket_tagging failed: {}", e);
+            0
+        }
+    };
+
+    // Get CORS configuration
+    let cors_enabled = match app.s3_client.get_bucket_cors().bucket(&bucket).send().await {
+        Ok(resp) => resp.cors_rules().len() > 0,
+        Err(e) => {
+            eprintln!("[get_bucket_details] get_bucket_cors failed: {}", e);
+            false
+        }
+    };
+
+    // Get logging configuration
+    let (logging_enabled, logging_target_bucket) = match app
+        .s3_client
+        .get_bucket_logging()
+        .bucket(&bucket)
+        .send()
+        .await
+    {
+        Ok(resp) => {
+            if let Some(logging) = resp.logging_enabled() {
+                let target = Some(logging.target_bucket().to_string());
+                (true, target)
+            } else {
+                (false, None)
+            }
+        }
+        Err(e) => {
+            eprintln!("[get_bucket_details] get_bucket_logging failed: {}", e);
+            (false, None)
+        }
+    };
+
+    let details = BucketDetails {
+        versioning_enabled,
+        versioning_status,
+        encryption_enabled,
+        encryption_type,
+        block_public_acls,
+        ignore_public_acls,
+        block_public_policy,
+        restrict_public_buckets,
+        lifecycle_rules_count,
+        tags_count,
+        cors_enabled,
+        logging_enabled,
+        logging_target_bucket,
+    };
+
+    println!(
+        "[get_bucket_details] Successfully fetched details for bucket: {}",
+        bucket
+    );
+    Ok(details)
 }

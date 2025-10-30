@@ -21,7 +21,7 @@ import { ContextMenuWrapper } from './components/ContextMenuWrapper';
 import { AppModals } from './components/AppModals';
 import { UploadProgressList } from './components/UploadProgressBar';
 import { FileDetailsSidebar } from './components/FileDetailsSidebar';
-import type { S3ObjectInfo } from './types';
+import type { S3ObjectInfo, BucketInfo } from './types';
 
 function App() {
   const {
@@ -55,6 +55,9 @@ function App() {
   const [selectedFile, setSelectedFile] = useState<S3ObjectInfo | null>(null);
   const [createFolderModalOpened, setCreateFolderModalOpened] = useState(false);
   const [createBucketModalOpened, setCreateBucketModalOpened] = useState(false);
+  const [bucketDetailsModalOpened, setBucketDetailsModalOpened] =
+    useState(false);
+  const [bucketToShow, setBucketToShow] = useState<BucketInfo | null>(null);
 
   // Mobile sidebar state
   const [navbarOpened, { toggle: toggleNavbar, close: closeNavbar }] =
@@ -105,6 +108,7 @@ function App() {
       fileOps.deleteModalOpened ||
       createFolderModalOpened ||
       createBucketModalOpened ||
+      bucketDetailsModalOpened ||
       connectionOps.deleteConnectionModalOpened,
     onSetSelectedFile: setSelectedFile,
     onEnterFolder: (key) => {
@@ -162,6 +166,12 @@ function App() {
     [createBucket]
   );
 
+  // Handle showing bucket details
+  const handleShowBucketDetails = useCallback((bucket: BucketInfo) => {
+    setBucketToShow(bucket);
+    setBucketDetailsModalOpened(true);
+  }, []);
+
   return (
     <AppShell
       navbar={{
@@ -200,6 +210,7 @@ function App() {
           onRequestDeleteConnection={
             connectionOps.handleRequestDeleteConnection
           }
+          onShowBucketDetails={handleShowBucketDetails}
           onCloseMobile={closeNavbar}
           isMobile={isMobile}
         />
@@ -330,6 +341,9 @@ function App() {
         connectionToDelete={connectionOps.connectionToDelete}
         onDeleteConnectionClose={connectionOps.handleDeleteConnectionClose}
         onDeleteConnectionConfirm={connectionOps.handleDeleteConnectionConfirm}
+        bucketDetailsModalOpened={bucketDetailsModalOpened}
+        bucketToShow={bucketToShow}
+        onBucketDetailsClose={() => setBucketDetailsModalOpened(false)}
       />
 
       {/* Hidden file input for context menu upload */}

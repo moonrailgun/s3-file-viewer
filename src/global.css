@@ -129,11 +129,32 @@ body {
 
 /* Connection sidebar item styles */
 .connection-sidebar-item {
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .connection-sidebar-item:hover {
-  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6)) !important;
+}
+
+/* Connection item (active state) */
+.connection-sidebar-item.connection-active {
+  background-color: light-dark(var(--mantine-color-blue-1), var(--mantine-color-dark-5));
+  border: 1px solid light-dark(var(--mantine-color-blue-3), var(--mantine-color-blue-7));
+}
+
+/* Bucket item (selected state) */
+.connection-sidebar-item.bucket-selected {
+  background-color: light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5));
+}
+
+/* Badge styles in sidebar */
+.connection-sidebar-item .mantine-Badge-root {
+  font-size: 9px;
+  height: 16px;
+  padding: 0 6px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 /* Compact scrollbar styles */

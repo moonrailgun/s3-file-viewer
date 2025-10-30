@@ -9,6 +9,7 @@ import {
   Button,
   Collapse,
   ActionIcon,
+  Badge,
 } from '@mantine/core';
 import {
   IconServer,
@@ -30,6 +31,35 @@ import {
 } from '@/components/ui/context-menu';
 import { SavedConnection, BucketInfo } from '../types';
 import { loadSavedConnections } from '../utils/connectionManager';
+
+// Generate a consistent color based on region string
+const getRegionColor = (region: string): string => {
+  const colors = [
+    'blue',
+    'cyan',
+    'teal',
+    'green',
+    'lime',
+    'yellow',
+    'orange',
+    'red',
+    'pink',
+    'grape',
+    'violet',
+    'indigo',
+  ];
+
+  // Simple hash function for string
+  let hash = 0;
+  for (let i = 0; i < region.length; i++) {
+    hash = region.charCodeAt(i) + ((hash << 5) - hash);
+    hash = hash & hash; // Convert to 32bit integer
+  }
+
+  // Map hash to color index
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
 
 export type ConnectionSidebarProps = {
   // Current active connection ID
@@ -237,14 +267,11 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
                               width: '100%',
                               padding: '6px 8px',
                               borderRadius: '4px',
-                              backgroundColor: active
-                                ? 'light-dark(var(--mantine-color-blue-1), var(--mantine-color-dark-5))'
-                                : 'transparent',
                               border: active
-                                ? '1px solid light-dark(var(--mantine-color-blue-3), var(--mantine-color-blue-7))'
+                                ? undefined
                                 : '1px solid transparent',
                             }}
-                            className="connection-sidebar-item"
+                            className={`connection-sidebar-item ${active ? 'connection-active' : ''}`}
                           >
                             <Group gap={6} wrap="nowrap">
                               <Box style={{ width: 14, flexShrink: 0 }}>
@@ -271,11 +298,21 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
                                 size="xs"
                                 fw={500}
                                 truncate
-                                style={{ flex: 1 }}
+                                style={{ flex: 1, minWidth: 0 }}
                               >
                                 {conn.name}
                               </Text>
                               {loading && <Loader size={12} />}
+                              {conn.region && (
+                                <Badge
+                                  size="xs"
+                                  variant="light"
+                                  color="gray"
+                                  style={{ flexShrink: 0 }}
+                                >
+                                  {conn.region}
+                                </Badge>
+                              )}
                             </Group>
                           </UnstyledButton>
                         </ContextMenuTrigger>
@@ -354,11 +391,8 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
                                       style={{
                                         padding: '4px 8px',
                                         borderRadius: '4px',
-                                        backgroundColor: isSelected
-                                          ? 'light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5))'
-                                          : 'transparent',
                                       }}
-                                      className="connection-sidebar-item"
+                                      className={`connection-sidebar-item ${isSelected ? 'bucket-selected' : ''}`}
                                     >
                                       <Group gap={6} wrap="nowrap">
                                         <IconDatabase
@@ -366,9 +400,24 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
                                           size={12}
                                           color="var(--mantine-color-blue-6)"
                                         />
-                                        <Text size="xs" truncate>
+                                        <Text
+                                          size="xs"
+                                          truncate
+                                          style={{ flex: 1, minWidth: 0 }}
+                                        >
                                           {bucket.name}
                                         </Text>
+                                        {bucket.region && (
+                                          <Badge
+                                            size="xs"
+                                            color={getRegionColor(
+                                              bucket.region
+                                            )}
+                                            style={{ flexShrink: 0 }}
+                                          >
+                                            {bucket.region}
+                                          </Badge>
+                                        )}
                                       </Group>
                                     </UnstyledButton>
                                   </ContextMenuTrigger>

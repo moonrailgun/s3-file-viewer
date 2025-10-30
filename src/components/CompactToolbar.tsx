@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Group,
   Breadcrumbs,
@@ -7,6 +7,7 @@ import {
   Text,
   Box,
   Collapse,
+  Tooltip,
 } from '@mantine/core';
 import {
   IconRefresh,
@@ -20,6 +21,7 @@ import {
 import { CreateFolderModal } from './CreateFolderModal';
 import { SearchBar } from './SearchBar';
 import { SearchMode } from '../types';
+import { useGlobalHotkeys, getHotkeyDisplay } from '../hooks/useGlobalHotkeys';
 
 export type CompactToolbarProps = {
   // Breadcrumb navigation
@@ -96,6 +98,57 @@ const CompactToolbarComponent: React.FC<CompactToolbarProps> = ({
     setSearchExpanded(false);
   }, []);
 
+  // Setup global hotkeys
+  const isMac = useMemo(
+    () => navigator.platform.toUpperCase().indexOf('MAC') >= 0,
+    []
+  );
+
+  useGlobalHotkeys(
+    [
+      {
+        key: 'f',
+        metaKey: isMac,
+        ctrlKey: !isMac,
+        handler: () => {
+          if (hasBucket) {
+            setSearchExpanded(true);
+            // Focus search input after a brief delay
+            setTimeout(() => {
+              const searchInput = document.querySelector(
+                'input[placeholder*="Search"]'
+              ) as HTMLInputElement;
+              if (searchInput) {
+                searchInput.focus();
+              }
+            }, 100);
+          }
+        },
+      },
+      {
+        key: 'r',
+        metaKey: isMac,
+        ctrlKey: !isMac,
+        handler: () => {
+          if (hasBucket && onRefresh) {
+            onRefresh();
+          }
+        },
+      },
+      {
+        key: 'o',
+        metaKey: isMac,
+        ctrlKey: !isMac,
+        handler: () => {
+          if (hasBucket) {
+            handleUploadClick();
+          }
+        },
+      },
+    ],
+    hasBucket
+  );
+
   return (
     <>
       <Box>
@@ -171,46 +224,53 @@ const CompactToolbarComponent: React.FC<CompactToolbarProps> = ({
             <Group gap={4}>
               {/* Search button - toggle search bar visibility */}
               {onSearch && (
+                <Tooltip label={`Search (${getHotkeyDisplay('F')})`} withArrow>
+                  <ActionIcon
+                    size="sm"
+                    variant="subtle"
+                    onClick={() => setSearchExpanded(!searchExpanded)}
+                    color={searchExpanded || searchQuery ? 'blue' : undefined}
+                  >
+                    <IconSearch size={14} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+
+              <Tooltip label={`Refresh (${getHotkeyDisplay('R')})`} withArrow>
                 <ActionIcon
                   size="sm"
                   variant="subtle"
-                  onClick={() => setSearchExpanded(!searchExpanded)}
-                  title="Search"
-                  color={searchExpanded || searchQuery ? 'blue' : undefined}
+                  onClick={onRefresh}
+                  disabled={loading}
                 >
-                  <IconSearch size={14} />
+                  <IconRefresh size={14} />
                 </ActionIcon>
-              )}
-
-              <ActionIcon
-                size="sm"
-                variant="subtle"
-                onClick={onRefresh}
-                disabled={loading}
-                title="Refresh"
-              >
-                <IconRefresh size={14} />
-              </ActionIcon>
+              </Tooltip>
 
               {!isMobile && (
+                <Tooltip label="New Folder" withArrow>
+                  <ActionIcon
+                    size="sm"
+                    variant="subtle"
+                    onClick={() => setCreateFolderModalOpened(true)}
+                  >
+                    <IconFolderPlus size={14} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+
+              <Tooltip
+                label={`Upload File (${getHotkeyDisplay('O')})`}
+                withArrow
+              >
                 <ActionIcon
                   size="sm"
                   variant="subtle"
-                  onClick={() => setCreateFolderModalOpened(true)}
-                  title="New Folder"
+                  onClick={handleUploadClick}
                 >
-                  <IconFolderPlus size={14} />
+                  <IconUpload size={14} />
                 </ActionIcon>
-              )}
-
-              <ActionIcon
-                size="sm"
-                variant="subtle"
-                onClick={handleUploadClick}
-                title="Upload File"
-              >
-                <IconUpload size={14} />
-              </ActionIcon>
+              </Tooltip>
 
               <Box ml={4}>
                 <SegmentedControl

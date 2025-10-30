@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Group,
   Breadcrumbs,
@@ -6,6 +6,7 @@ import {
   SegmentedControl,
   Text,
   Box,
+  Collapse,
 } from '@mantine/core';
 import {
   IconRefresh,
@@ -14,8 +15,11 @@ import {
   IconLayoutList,
   IconLayoutGrid,
   IconMenu2,
+  IconSearch,
 } from '@tabler/icons-react';
 import { CreateFolderModal } from './CreateFolderModal';
+import { SearchBar } from './SearchBar';
+import { SearchMode } from '../types';
 
 export type CompactToolbarProps = {
   // Breadcrumb navigation
@@ -34,9 +38,15 @@ export type CompactToolbarProps = {
   // Mobile navigation
   onToggleNavbar?: () => void;
   isMobile?: boolean;
+  // Search
+  searchQuery?: string;
+  searchMode?: SearchMode;
+  isSearching?: boolean;
+  onSearch?: (query: string, mode: SearchMode) => void;
+  onClearSearch?: () => void;
 };
 
-export const CompactToolbar: React.FC<CompactToolbarProps> = ({
+const CompactToolbarComponent: React.FC<CompactToolbarProps> = ({
   breadcrumbItems,
   view,
   onChangeView,
@@ -47,9 +57,16 @@ export const CompactToolbar: React.FC<CompactToolbarProps> = ({
   hasBucket,
   onToggleNavbar,
   isMobile = false,
+  searchQuery = '',
+  searchMode = 'fuzzy',
+  isSearching = false,
+  onSearch,
+  onClearSearch,
 }) => {
   const [createFolderModalOpened, setCreateFolderModalOpened] = useState(false);
   const [creatingFolder, setCreatingFolder] = useState(false);
+  // Search is collapsed by default for both mobile and desktop
+  const [searchExpanded, setSearchExpanded] = useState(false);
 
   const handleCreateFolder = async (folderName: string) => {
     try {
@@ -74,128 +91,173 @@ export const CompactToolbar: React.FC<CompactToolbarProps> = ({
     input.click();
   };
 
+  // Handle ESC key - clear and collapse
+  const handleSearchEscape = useCallback(() => {
+    setSearchExpanded(false);
+  }, []);
+
   return (
     <>
-      <Group
-        justify="space-between"
-        p="xs"
-        style={{
-          borderBottom:
-            '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
-          backgroundColor:
-            'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))',
-        }}
-      >
-        {/* Left: Mobile menu button + Bucket name and Breadcrumbs */}
-        <Box
+      <Box>
+        <Group
+          justify="space-between"
+          p="xs"
           style={{
-            flex: 1,
-            minWidth: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
+            borderBottom:
+              '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
+            backgroundColor:
+              'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))',
           }}
         >
-          {/* Mobile hamburger menu */}
-          {isMobile && onToggleNavbar && (
-            <ActionIcon
-              size="sm"
-              variant="subtle"
-              onClick={onToggleNavbar}
-              title="Toggle Sidebar"
-            >
-              <IconMenu2 size={16} />
-            </ActionIcon>
-          )}
-
-          {hasBucket ? (
-            <Box
-              className="flex items-center gap-2"
-              style={{ flex: 1, minWidth: 0 }}
-            >
-              {/* Breadcrumbs */}
-              {breadcrumbItems.length > 0 ? (
-                <Breadcrumbs
-                  separator="/"
-                  separatorMargin={4}
-                  className={isMobile ? 'hidden sm:flex' : ''}
-                >
-                  {breadcrumbItems}
-                </Breadcrumbs>
-              ) : (
-                <Text
-                  size="sm"
-                  c="dimmed"
-                  className={isMobile ? 'hidden sm:inline' : ''}
-                >
-                  /
-                </Text>
-              )}
-            </Box>
-          ) : (
-            <Text
-              size="sm"
-              c="dimmed"
-              className={isMobile ? 'hidden sm:inline' : ''}
-            >
-              {hasBucket ? '/' : 'Please select a bucket'}
-            </Text>
-          )}
-        </Box>
-
-        {/* Right: Actions */}
-        {hasBucket && (
-          <Group gap={4}>
-            <ActionIcon
-              size="sm"
-              variant="subtle"
-              onClick={onRefresh}
-              disabled={loading}
-              title="Refresh"
-            >
-              <IconRefresh size={14} />
-            </ActionIcon>
-
-            {!isMobile && (
+          {/* Left: Mobile menu button + Bucket name and Breadcrumbs */}
+          <Box
+            style={{
+              flex: 1,
+              minWidth: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            {/* Mobile hamburger menu */}
+            {isMobile && onToggleNavbar && (
               <ActionIcon
                 size="sm"
                 variant="subtle"
-                onClick={() => setCreateFolderModalOpened(true)}
-                title="New Folder"
+                onClick={onToggleNavbar}
+                title="Toggle Sidebar"
               >
-                <IconFolderPlus size={14} />
+                <IconMenu2 size={16} />
               </ActionIcon>
             )}
 
-            <ActionIcon
-              size="sm"
-              variant="subtle"
-              onClick={handleUploadClick}
-              title="Upload File"
-            >
-              <IconUpload size={14} />
-            </ActionIcon>
+            {hasBucket ? (
+              <Box
+                className="flex items-center gap-2"
+                style={{ flex: 1, minWidth: 0 }}
+              >
+                {/* Breadcrumbs */}
+                {breadcrumbItems.length > 0 ? (
+                  <Breadcrumbs
+                    separator="/"
+                    separatorMargin={4}
+                    className={isMobile ? 'hidden sm:flex' : ''}
+                  >
+                    {breadcrumbItems}
+                  </Breadcrumbs>
+                ) : (
+                  <Text
+                    size="sm"
+                    c="dimmed"
+                    className={isMobile ? 'hidden sm:inline' : ''}
+                  >
+                    /
+                  </Text>
+                )}
+              </Box>
+            ) : (
+              <Text
+                size="sm"
+                c="dimmed"
+                className={isMobile ? 'hidden sm:inline' : ''}
+              >
+                {hasBucket ? '/' : 'Please select a bucket'}
+              </Text>
+            )}
+          </Box>
 
-            <Box ml={4}>
-              <SegmentedControl
-                size="xs"
-                value={view}
-                onChange={onChangeView}
-                data={[
-                  {
-                    value: 'list',
-                    label: <IconLayoutList size={14} />,
-                  },
-                  {
-                    value: 'thumb',
-                    label: <IconLayoutGrid size={14} />,
-                  },
-                ]}
+          {/* Right: Actions */}
+          {hasBucket && (
+            <Group gap={4}>
+              {/* Search button - toggle search bar visibility */}
+              {onSearch && (
+                <ActionIcon
+                  size="sm"
+                  variant="subtle"
+                  onClick={() => setSearchExpanded(!searchExpanded)}
+                  title="Search"
+                  color={searchExpanded || searchQuery ? 'blue' : undefined}
+                >
+                  <IconSearch size={14} />
+                </ActionIcon>
+              )}
+
+              <ActionIcon
+                size="sm"
+                variant="subtle"
+                onClick={onRefresh}
+                disabled={loading}
+                title="Refresh"
+              >
+                <IconRefresh size={14} />
+              </ActionIcon>
+
+              {!isMobile && (
+                <ActionIcon
+                  size="sm"
+                  variant="subtle"
+                  onClick={() => setCreateFolderModalOpened(true)}
+                  title="New Folder"
+                >
+                  <IconFolderPlus size={14} />
+                </ActionIcon>
+              )}
+
+              <ActionIcon
+                size="sm"
+                variant="subtle"
+                onClick={handleUploadClick}
+                title="Upload File"
+              >
+                <IconUpload size={14} />
+              </ActionIcon>
+
+              <Box ml={4}>
+                <SegmentedControl
+                  size="xs"
+                  value={view}
+                  onChange={onChangeView}
+                  data={[
+                    {
+                      value: 'list',
+                      label: <IconLayoutList size={14} />,
+                    },
+                    {
+                      value: 'thumb',
+                      label: <IconLayoutGrid size={14} />,
+                    },
+                  ]}
+                />
+              </Box>
+            </Group>
+          )}
+        </Group>
+
+        {/* Search bar - collapsible for both desktop and mobile */}
+        {hasBucket && onSearch && onClearSearch && (
+          <Collapse in={searchExpanded}>
+            <Box
+              p="xs"
+              style={{
+                borderBottom:
+                  '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
+                backgroundColor:
+                  'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))',
+              }}
+            >
+              <SearchBar
+                value={searchQuery}
+                mode={searchMode}
+                loading={isSearching}
+                onSearch={onSearch}
+                onClear={onClearSearch}
+                onEscape={handleSearchEscape}
+                compact={isMobile}
               />
             </Box>
-          </Group>
+          </Collapse>
         )}
-      </Group>
+      </Box>
 
       <CreateFolderModal
         opened={createFolderModalOpened}
@@ -206,3 +268,24 @@ export const CompactToolbar: React.FC<CompactToolbarProps> = ({
     </>
   );
 };
+
+// Memoize the component to prevent unnecessary re-renders
+export const CompactToolbar = React.memo(
+  CompactToolbarComponent,
+  (prevProps, nextProps) => {
+    // Compare primitive values and check if breadcrumb items array length changed
+    return (
+      prevProps.view === nextProps.view &&
+      prevProps.loading === nextProps.loading &&
+      prevProps.hasBucket === nextProps.hasBucket &&
+      prevProps.isMobile === nextProps.isMobile &&
+      prevProps.searchQuery === nextProps.searchQuery &&
+      prevProps.searchMode === nextProps.searchMode &&
+      prevProps.isSearching === nextProps.isSearching &&
+      prevProps.breadcrumbItems.length === nextProps.breadcrumbItems.length
+      // Function props are not compared (should be stable from useCallback)
+    );
+  }
+);
+
+CompactToolbar.displayName = 'CompactToolbar';

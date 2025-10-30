@@ -55,3 +55,5 @@ export type BucketDetails = {
   logging_enabled: boolean;
   logging_target_bucket?: string;
 };
+
+export type SearchMode = 'fuzzy' | 'regex';

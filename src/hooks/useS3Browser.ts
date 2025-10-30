@@ -3,7 +3,12 @@ import { useLocalStorageState } from 'ahooks';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { notifications } from '@mantine/notifications';
-import { BucketInfo, ConnectionParams, S3ObjectInfo } from '../types';
+import {
+  BucketInfo,
+  ConnectionParams,
+  S3ObjectInfo,
+  SearchMode,
+} from '../types';
 import {
   updateConnectionLastUsed,
   saveConnection,
@@ -66,6 +71,24 @@ export function useS3Browser() {
   const [prefix, setPrefix] = useLocalStorageState<string>('s3fv:lastPrefix', {
     defaultValue: '',
   });
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchMode, setSearchMode] = useState<SearchMode>('fuzzy');
+  const [isSearching, setIsSearching] = useState(false);
+  const [originalObjects, setOriginalObjects] = useState<S3ObjectInfo[]>([]);
+
+  // Use refs to avoid function recreation on every objects change
+  const objectsRef = useRef<S3ObjectInfo[]>([]);
+  const originalObjectsRef = useRef<S3ObjectInfo[]>([]);
+
+  useEffect(() => {
+    objectsRef.current = objects;
+  }, [objects]);
+
+  useEffect(() => {
+    originalObjectsRef.current = originalObjects;
+  }, [originalObjects]);
 
   const handleResetUrlCache = useCallback(() => {
     urlCacheRef.current.clear();
@@ -315,6 +338,10 @@ export function useS3Browser() {
         prefix: prefix || null,
       })) as S3ObjectInfo[];
       setObjects(res);
+      // Clear search when fetching new objects
+      setSearchQuery('');
+      setIsSearching(false);
+      setOriginalObjects([]);
     } catch (err: any) {
       notifications.show({
         message: `List objects failed: ${err}`,
@@ -325,6 +352,66 @@ export function useS3Browser() {
       setLoading(false);
     }
   }, [bucket, prefix]);
+
+  // Search objects function - stable reference with refs
+  const searchObjects = useCallback(
+    async (query: string, mode: SearchMode) => {
+      if (!bucket) return;
+
+      // If query is empty, restore original objects
+      if (!query.trim()) {
+        if (originalObjectsRef.current.length > 0) {
+          setObjects(originalObjectsRef.current);
+          setOriginalObjects([]);
+        }
+        setSearchQuery('');
+        setIsSearching(false);
+        return;
+      }
+
+      try {
+        setIsSearching(true);
+
+        // Save original objects if not already saved
+        if (
+          originalObjectsRef.current.length === 0 &&
+          objectsRef.current.length > 0
+        ) {
+          setOriginalObjects(objectsRef.current);
+        }
+
+        const res = (await invoke('search_objects', {
+          bucket,
+          prefix: prefix || null,
+          searchQuery: query,
+          searchMode: mode,
+        })) as S3ObjectInfo[];
+
+        setObjects(res);
+        setSearchQuery(query);
+        setSearchMode(mode);
+      } catch (err: any) {
+        notifications.show({
+          message: `Search failed: ${err}`,
+          color: 'red',
+          position: 'bottom-right',
+        });
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [bucket, prefix]
+  );
+
+  // Clear search function - stable reference with refs
+  const clearSearch = useCallback(() => {
+    if (originalObjectsRef.current.length > 0) {
+      setObjects(originalObjectsRef.current);
+      setOriginalObjects([]);
+    }
+    setSearchQuery('');
+    setIsSearching(false);
+  }, []);
 
   async function deleteObject(key: string) {
     if (!bucket) return;
@@ -469,6 +556,10 @@ export function useS3Browser() {
     activeConnectionId,
     connectionBuckets,
     connectionLoading,
+    // Search state
+    searchQuery,
+    searchMode,
+    isSearching,
     // setters
     setView,
     setShowConnect,
@@ -492,5 +583,8 @@ export function useS3Browser() {
     refreshConnectionBuckets,
     selectConnectionBucket,
     deleteConnectionFromState,
+    // Search actions
+    searchObjects,
+    clearSearch,
   } as const;
 }

@@ -35,6 +35,9 @@ function App() {
     connectionBuckets,
     connectionLoading,
     connSafe,
+    searchQuery,
+    searchMode,
+    isSearching,
     setView,
     setPrefix,
     ensureObjectUrl,
@@ -47,6 +50,8 @@ function App() {
     refreshConnectionBuckets,
     selectConnectionBucket,
     deleteConnectionFromState,
+    searchObjects,
+    clearSearch,
   } = useS3Browser();
 
   // Local state
@@ -172,6 +177,12 @@ function App() {
     setBucketDetailsModalOpened(true);
   }, []);
 
+  // Handle refresh - stable callback
+  const handleRefresh = useCallback(() => {
+    fetchObjects();
+    setSelectedFile(null);
+  }, [fetchObjects]);
+
   return (
     <AppShell
       navbar={{
@@ -231,16 +242,18 @@ function App() {
               breadcrumbItems={breadcrumbItems}
               view={view}
               onChangeView={setView}
-              onRefresh={() => {
-                fetchObjects();
-                setSelectedFile(null);
-              }}
+              onRefresh={handleRefresh}
               onCreateFolder={handleToolbarCreateFolder}
               onUpload={handleToolbarUpload}
               loading={loading}
               hasBucket={!!bucket}
               onToggleNavbar={toggleNavbar}
               isMobile={isMobile}
+              searchQuery={searchQuery}
+              searchMode={searchMode}
+              isSearching={isSearching}
+              onSearch={searchObjects}
+              onClearSearch={clearSearch}
             />
 
             <ContextMenuWrapper

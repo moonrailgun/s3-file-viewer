@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use futures::future;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use tauri::Emitter;
@@ -367,6 +368,120 @@ async fn list_objects(
 }
 
 #[tauri::command]
+async fn search_objects(
+    bucket: String,
+    prefix: Option<String>,
+    search_query: String,
+    search_mode: String, // "fuzzy" or "regex"
+    state: tauri::State<'_, tokio::sync::Mutex<Option<AppState>>>,
+) -> Result<Vec<S3ObjectInfo>, String> {
+    println!(
+        "[search_objects] bucket: {}, prefix: {:?}, query: {}, mode: {}",
+        bucket, prefix, search_query, search_mode
+    );
+
+    // If search query is empty, return empty results
+    if search_query.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+
+    // First, get all objects in the current directory using list_objects logic
+    let guard = state.lock().await;
+    let app = match guard.as_ref() {
+        Some(app) => app,
+        None => {
+            eprintln!("[search_objects] Not connected");
+            return Err("Not connected".to_string());
+        }
+    };
+
+    let mut req = app.s3_client.list_objects_v2().bucket(bucket.clone());
+    if let Some(p) = &prefix {
+        if !p.is_empty() {
+            println!("[search_objects] Using prefix: {}", p);
+            req = req.prefix(p);
+        }
+    }
+    req = req.delimiter("/");
+
+    let resp = match req.send().await {
+        Ok(r) => {
+            println!("[search_objects] list_objects_v2 request succeeded");
+            r
+        }
+        Err(e) => {
+            eprintln!("[search_objects] list_objects_v2 request failed: {e:#?}");
+            return Err(format_s3_error(&e));
+        }
+    };
+
+    let mut all_objects: Vec<S3ObjectInfo> = Vec::new();
+
+    // Collect folders
+    for cp in resp.common_prefixes() {
+        if let Some(p) = cp.prefix() {
+            all_objects.push(S3ObjectInfo {
+                key: p.to_string(),
+                size: 0,
+                last_modified: None,
+                is_dir: true,
+            });
+        }
+    }
+
+    // Collect files
+    for obj in resp.contents() {
+        let key = obj.key().unwrap_or_default().to_string();
+        let size = obj.size().unwrap_or_default();
+        let last_modified = obj
+            .last_modified()
+            .and_then(|d: &DateTime| d.fmt(aws_smithy_types::date_time::Format::DateTime).ok());
+        all_objects.push(S3ObjectInfo {
+            key,
+            size,
+            last_modified,
+            is_dir: false,
+        });
+    }
+
+    // Now filter based on search query and mode
+    let filtered: Vec<S3ObjectInfo> = match search_mode.as_str() {
+        "regex" => {
+            // Regex mode
+            match Regex::new(&search_query) {
+                Ok(re) => all_objects
+                    .into_iter()
+                    .filter(|obj| {
+                        // Extract filename from key
+                        let filename = obj.key.split('/').last().unwrap_or(&obj.key);
+                        re.is_match(filename)
+                    })
+                    .collect(),
+                Err(e) => {
+                    eprintln!("[search_objects] Invalid regex: {}", e);
+                    return Err(format!("Invalid regex pattern: {}", e));
+                }
+            }
+        }
+        _ => {
+            // Fuzzy mode (default) - case insensitive contains
+            let query_lower = search_query.to_lowercase();
+            all_objects
+                .into_iter()
+                .filter(|obj| {
+                    // Extract filename from key
+                    let filename = obj.key.split('/').last().unwrap_or(&obj.key);
+                    filename.to_lowercase().contains(&query_lower)
+                })
+                .collect()
+        }
+    };
+
+    println!("[search_objects] Found {} matching objects", filtered.len());
+    Ok(filtered)
+}
+
+#[tauri::command]
 async fn create_folder(
     bucket: String,
     folder_key: String,
@@ -582,6 +697,7 @@ pub fn run() {
             list_buckets,
             create_bucket,
             list_objects,
+            search_objects,
             create_folder,
             delete_object,
             upload_object,

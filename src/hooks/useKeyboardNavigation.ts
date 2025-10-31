@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { isMobilePlatform } from '../utils/platform';
 import type { S3ObjectInfo } from '../types';
 
 interface UseKeyboardNavigationProps {
@@ -15,6 +16,8 @@ interface UseKeyboardNavigationProps {
 /**
  * Custom hook for keyboard navigation in file list/grid
  * Handles arrow keys and Enter key for navigation and preview
+ *
+ * Note: Keyboard navigation is automatically disabled on mobile platforms
  */
 export function useKeyboardNavigation({
   bucket,
@@ -27,6 +30,10 @@ export function useKeyboardNavigation({
   onPreviewFile,
 }: UseKeyboardNavigationProps) {
   useEffect(() => {
+    // Disable keyboard navigation on mobile platforms
+    const isMobile = isMobilePlatform();
+    if (isMobile) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // Skip if there's no bucket or objects, or if modals are open
       if (!bucket || objects.length === 0 || modalsOpen) {

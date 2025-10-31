@@ -22,6 +22,7 @@ import { AppModals } from './components/AppModals';
 import { UploadProgressList } from './components/UploadProgressBar';
 import { FileDetailsSidebar } from './components/FileDetailsSidebar';
 import type { S3ObjectInfo, BucketInfo } from './types';
+import { isMobilePlatform } from './utils/platform';
 
 function App() {
   const {
@@ -65,8 +66,10 @@ function App() {
   const [bucketToShow, setBucketToShow] = useState<BucketInfo | null>(null);
 
   // Mobile sidebar state
+  // On mobile platforms (iOS/Android), default to open the sidebar
+  const isOnMobilePlatform = isMobilePlatform();
   const [navbarOpened, { toggle: toggleNavbar, close: closeNavbar }] =
-    useDisclosure(false);
+    useDisclosure(isOnMobilePlatform);
   const isMobile = useMediaQuery('(max-width: 640px)');
 
   // File operations hook

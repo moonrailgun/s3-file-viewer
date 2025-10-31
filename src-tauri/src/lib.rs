@@ -1,22 +1,38 @@
+// Desktop implementation below - only compiled for desktop platforms
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 use std::sync::Arc;
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
+use base64::{engine::general_purpose, Engine};
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 use futures::future;
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 use regex::Regex;
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 use serde::{Deserialize, Serialize};
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 use serde_json;
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
+use std::time::Duration;
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 use tauri::Emitter;
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 use thiserror::Error;
 
-// AWS SDK imports
+// AWS SDK imports - only available on desktop platforms
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 use aws_credential_types::Credentials;
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 use aws_sdk_s3 as s3;
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 use aws_sdk_s3::presigning::PresigningConfig;
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 use aws_smithy_types::error::metadata::ProvideErrorMetadata;
-use base64::{engine::general_purpose, Engine};
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 use s3::primitives::DateTime;
-use std::time::Duration;
 
 // Helper function to extract error code and message from AWS SDK errors
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 fn format_s3_error<E, R>(error: &s3::error::SdkError<E, R>) -> String
 where
     E: std::error::Error + ProvideErrorMetadata,
@@ -42,34 +58,45 @@ where
 }
 
 // Helper function for generic errors
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 fn format_error_details<E: std::fmt::Display>(error: &E) -> String {
     error.to_string()
 }
 
+// ============================================================================
+// DESKTOP-ONLY CODE BELOW
+// All structures, functions, and commands below are only compiled for desktop platforms
+// ============================================================================
+
 // Shared state for S3 client and connection info
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[derive(Clone)]
 struct AppState {
     s3_client: Arc<s3::Client>,
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[derive(Debug, Error)]
 enum AppError {
     #[error("S3 error: {0}")]
     S3(String),
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 impl From<s3::error::SdkError<s3::operation::list_buckets::ListBucketsError>> for AppError {
     fn from(err: s3::error::SdkError<s3::operation::list_buckets::ListBucketsError>) -> Self {
         AppError::S3(err.to_string())
     }
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 impl From<s3::error::SdkError<s3::operation::list_objects_v2::ListObjectsV2Error>> for AppError {
     fn from(err: s3::error::SdkError<s3::operation::list_objects_v2::ListObjectsV2Error>) -> Self {
         AppError::S3(err.to_string())
     }
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ConnectionParams {
     endpoint: String,
@@ -78,6 +105,7 @@ struct ConnectionParams {
     region: String,
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct S3ObjectInfo {
     key: String,
@@ -86,6 +114,7 @@ struct S3ObjectInfo {
     is_dir: bool,
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct BucketInfo {
     name: String,
@@ -93,6 +122,7 @@ struct BucketInfo {
     creation_date: Option<String>,
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct BucketDetails {
     // Versioning
@@ -123,6 +153,7 @@ struct BucketDetails {
     logging_target_bucket: Option<String>,
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[tauri::command]
 async fn connect(
     params: ConnectionParams,
@@ -188,6 +219,7 @@ async fn connect(
     Ok(())
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[tauri::command]
 async fn list_buckets(
     state: tauri::State<'_, tokio::sync::Mutex<Option<AppState>>>,
@@ -250,6 +282,7 @@ async fn list_buckets(
     Ok(infos)
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[tauri::command]
 async fn create_bucket(
     bucket_name: String,
@@ -289,6 +322,7 @@ async fn create_bucket(
     Ok(())
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[tauri::command]
 async fn list_objects(
     bucket: String,
@@ -367,6 +401,7 @@ async fn list_objects(
     Ok(result)
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[tauri::command]
 async fn search_objects(
     bucket: String,
@@ -481,6 +516,7 @@ async fn search_objects(
     Ok(filtered)
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[tauri::command]
 async fn create_folder(
     bucket: String,
@@ -503,6 +539,7 @@ async fn create_folder(
     Ok(())
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[tauri::command]
 async fn delete_object(
     bucket: String,
@@ -521,6 +558,7 @@ async fn delete_object(
     Ok(())
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[derive(Deserialize)]
 struct UploadParams {
     bucket: String,
@@ -530,6 +568,7 @@ struct UploadParams {
     content_type: Option<String>, // MIME type of the content
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[derive(Deserialize)]
 struct UploadWithProgressParams {
     bucket: String,
@@ -540,6 +579,7 @@ struct UploadWithProgressParams {
     content_type: Option<String>, // MIME type of the content
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[tauri::command]
 async fn upload_object(
     params: UploadParams,
@@ -568,6 +608,7 @@ async fn upload_object(
     Ok(())
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[tauri::command]
 async fn upload_object_with_progress(
     params: UploadWithProgressParams,
@@ -684,6 +725,8 @@ async fn upload_object_with_progress(
     Ok(())
 }
 
+// Desktop run function
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -710,6 +753,7 @@ pub fn run() {
         .expect("error while running tauri application");
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[tauri::command]
 async fn get_object_url(
     bucket: String,
@@ -734,6 +778,7 @@ async fn get_object_url(
     Ok(req.uri().to_string())
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[tauri::command]
 async fn download_object(
     bucket: String,
@@ -777,6 +822,7 @@ async fn download_object(
     Ok(())
 }
 
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[tauri::command]
 async fn get_bucket_details(
     bucket: String,
@@ -948,4 +994,18 @@ async fn get_bucket_details(
         bucket
     );
     Ok(details)
+}
+
+// Mobile platform simple run function
+#[cfg(any(target_os = "ios", target_os = "android"))]
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
+        // No S3 commands on mobile - they would all fail anyway
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
 }

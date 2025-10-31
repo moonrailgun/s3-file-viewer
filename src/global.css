@@ -191,8 +191,13 @@ body {
 
   /* Make buttons slightly larger for touch targets */
   .mantine-ActionIcon-root {
-    min-width: 32px;
-    min-height: 32px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .mantine-Button-root {
+    min-height: 40px;
+    padding: 8px 16px;
   }
 
   /* Adjust table text size for mobile */
@@ -213,7 +218,56 @@ body {
 
   /* Make segmented control touch-friendly */
   .mantine-SegmentedControl-label {
-    padding: 6px 10px;
+    padding: 8px 12px;
+    min-height: 36px;
+  }
+
+  /* Touch-friendly input fields */
+  .mantine-TextInput-input,
+  .mantine-Select-input {
+    min-height: 40px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+
+  /* Improve breadcrumb spacing for touch */
+  .mantine-Breadcrumbs-separator {
+    margin: 0 8px;
+  }
+}
+
+/* iOS safe area support */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Touch-friendly interactions */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase touch target sizes */
+  button,
+  a,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Remove hover states on touch devices */
+  .connection-sidebar-item:hover {
+    background-color: inherit !important;
+  }
+
+  /* Add active/pressed state for touch feedback */
+  .connection-sidebar-item:active {
+    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5)) !important;
+  }
+
+  button:active,
+  [role="button"]:active {
+    opacity: 0.7;
   }
 }
 

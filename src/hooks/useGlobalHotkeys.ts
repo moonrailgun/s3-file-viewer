@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { isMobilePlatform } from '../utils/platform';
 
 interface HotkeyHandler {
   key: string;
@@ -13,10 +14,14 @@ interface HotkeyHandler {
 /**
  * Global hotkey hook
  * Handles keyboard shortcuts across the application
+ *
+ * Note: Keyboard shortcuts are automatically disabled on mobile platforms
  */
 export function useGlobalHotkeys(handlers: HotkeyHandler[], enabled = true) {
   useEffect(() => {
-    if (!enabled) return;
+    // Disable hotkeys on mobile platforms
+    const isMobile = isMobilePlatform();
+    if (!enabled || isMobile) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       // Don't trigger if user is typing in an input/textarea

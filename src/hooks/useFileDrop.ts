@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { isMobilePlatform } from '../utils/platform';
 
 interface UseFileDropOptions {
   onFilesDropped: (files: File[]) => void;
@@ -20,6 +21,8 @@ interface UseFileDropReturn {
  * @param onFilesDropped - Callback function to handle dropped files
  * @param enabled - Whether drag and drop is enabled (default: true)
  * @returns Object containing isDragging state and drag event handlers
+ *
+ * Note: Drag and drop is automatically disabled on mobile platforms
  */
 export function useFileDrop({
   onFilesDropped,
@@ -27,8 +30,17 @@ export function useFileDrop({
 }: UseFileDropOptions): UseFileDropReturn {
   const [isDragging, setIsDragging] = useState(false);
 
+  // Disable drag and drop on mobile platforms
+  const isMobile = isMobilePlatform();
+  const dragDropEnabled = enabled && !isMobile;
+
   // Prevent default drag and drop behavior globally to avoid browser opening files
+  // Skip on mobile platforms
   useEffect(() => {
+    if (isMobile) {
+      return;
+    }
+
     const preventDefaults = (e: DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
@@ -42,18 +54,18 @@ export function useFileDrop({
       window.removeEventListener('dragover', preventDefaults);
       window.removeEventListener('drop', preventDefaults);
     };
-  }, []);
+  }, [isMobile]);
 
   const handleDragEnter = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       e.stopPropagation();
       console.log('[Drag] Enter event triggered');
-      if (enabled && e.dataTransfer.types.includes('Files')) {
+      if (dragDropEnabled && e.dataTransfer.types.includes('Files')) {
         setIsDragging(true);
       }
     },
-    [enabled]
+    [dragDropEnabled]
   );
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -88,7 +100,7 @@ export function useFileDrop({
       console.log('[Drag] Drop event triggered');
       setIsDragging(false);
 
-      if (!enabled) {
+      if (!dragDropEnabled) {
         return;
       }
 
@@ -102,7 +114,7 @@ export function useFileDrop({
       // Call the callback with dropped files
       onFilesDropped(files);
     },
-    [enabled, onFilesDropped]
+    [dragDropEnabled, onFilesDropped]
   );
 
   return {

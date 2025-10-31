@@ -12,7 +12,13 @@
     "tauri": "tauri",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "ios:init": "bun tauri ios init",
+    "ios:dev": "bun tauri ios dev",
+    "ios:build": "bun tauri ios build",
+    "android:init": "bun tauri android init",
+    "android:dev": "bun tauri android dev",
+    "android:build": "bun tauri android build"
   },
   "dependencies": {
     "@mantine/charts": "^8.2.4",

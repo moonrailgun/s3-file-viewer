@@ -138,6 +138,17 @@ export function updateConnectionLastUsed(conn: ConnectionParams): void {
 }
 
 /**
+ * Reorder connections and save to localStorage
+ */
+export function reorderConnections(connections: SavedConnection[]): void {
+  try {
+    localStorage.setItem(CONNECTIONS_KEY, JSON.stringify(connections));
+  } catch (error) {
+    console.error('Failed to reorder connections:', error);
+  }
+}
+
+/**
  * Convert SavedConnection to ConnectionParams
  */
 export function toConnectionParams(saved: SavedConnection): ConnectionParams {

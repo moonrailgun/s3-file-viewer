@@ -157,6 +157,17 @@ body {
   letter-spacing: 0.3px;
 }
 
+/* Drag and drop styles for connections */
+.connection-dragging {
+  opacity: 0.5;
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+  transition: opacity 0.2s ease;
+}
+
+.connection-sidebar-item:not(.connection-dragging) {
+  transition: transform 0.2s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
 /* Compact scrollbar styles */
 ::-webkit-scrollbar {
   width: 8px;

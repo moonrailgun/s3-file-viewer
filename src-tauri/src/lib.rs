@@ -729,6 +729,9 @@ async fn upload_object_with_progress(
 #[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
+    use tauri_plugin_opener::OpenerExt;
+
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
@@ -749,6 +752,109 @@ pub fn run() {
             download_object,
             get_bucket_details
         ])
+        .setup(|app| {
+            // Create Configuration Guide menu item
+            let config_guide =
+                MenuItemBuilder::with_id("config_guide", "Configuration Guide").build(app)?;
+
+            // Create Help submenu with custom item
+            let help_menu = SubmenuBuilder::new(app, "Help")
+                .item(&config_guide)
+                .build()?;
+
+            // Build the menu bar with standard macOS menus
+            #[cfg(target_os = "macos")]
+            {
+                // macOS standard menus
+                let app_menu = SubmenuBuilder::new(app, "S3 File Viewer")
+                    .item(&PredefinedMenuItem::about(app, None, None)?)
+                    .separator()
+                    .item(&PredefinedMenuItem::hide(app, None)?)
+                    .item(&PredefinedMenuItem::hide_others(app, None)?)
+                    .item(&PredefinedMenuItem::show_all(app, None)?)
+                    .separator()
+                    .item(&PredefinedMenuItem::quit(app, None)?)
+                    .build()?;
+
+                let edit_menu = SubmenuBuilder::new(app, "Edit")
+                    .item(&PredefinedMenuItem::undo(app, None)?)
+                    .item(&PredefinedMenuItem::redo(app, None)?)
+                    .separator()
+                    .item(&PredefinedMenuItem::cut(app, None)?)
+                    .item(&PredefinedMenuItem::copy(app, None)?)
+                    .item(&PredefinedMenuItem::paste(app, None)?)
+                    .item(&PredefinedMenuItem::select_all(app, None)?)
+                    .build()?;
+
+                let view_menu = SubmenuBuilder::new(app, "View")
+                    .item(&PredefinedMenuItem::fullscreen(app, None)?)
+                    .build()?;
+
+                let window_menu = SubmenuBuilder::new(app, "Window")
+                    .item(&PredefinedMenuItem::minimize(app, None)?)
+                    .item(&PredefinedMenuItem::maximize(app, None)?)
+                    .separator()
+                    .item(&PredefinedMenuItem::close_window(app, None)?)
+                    .build()?;
+
+                let menu = MenuBuilder::new(app)
+                    .item(&app_menu)
+                    .item(&edit_menu)
+                    .item(&view_menu)
+                    .item(&window_menu)
+                    .item(&help_menu)
+                    .build()?;
+
+                app.set_menu(menu)?;
+            }
+
+            #[cfg(not(target_os = "macos"))]
+            {
+                // Windows/Linux menus
+                let file_menu = SubmenuBuilder::new(app, "File")
+                    .item(&PredefinedMenuItem::quit(app, None)?)
+                    .build()?;
+
+                let edit_menu = SubmenuBuilder::new(app, "Edit")
+                    .item(&PredefinedMenuItem::undo(app, None)?)
+                    .item(&PredefinedMenuItem::redo(app, None)?)
+                    .separator()
+                    .item(&PredefinedMenuItem::cut(app, None)?)
+                    .item(&PredefinedMenuItem::copy(app, None)?)
+                    .item(&PredefinedMenuItem::paste(app, None)?)
+                    .item(&PredefinedMenuItem::select_all(app, None)?)
+                    .build()?;
+
+                let view_menu = SubmenuBuilder::new(app, "View")
+                    .item(&PredefinedMenuItem::fullscreen(app, None)?)
+                    .build()?;
+
+                let menu = MenuBuilder::new(app)
+                    .item(&file_menu)
+                    .item(&edit_menu)
+                    .item(&view_menu)
+                    .item(&help_menu)
+                    .build()?;
+
+                app.set_menu(menu)?;
+            }
+
+            // Handle menu events
+            app.on_menu_event(move |app_handle, event| {
+                if event.id() == "config_guide" {
+                    println!("[menu] Configuration Guide clicked");
+                    // Use the opener plugin to open URL
+                    let url = "https://s3-file-viewer.moonrailgun.com/configuration-guide.html";
+                    if let Err(e) = app_handle.opener().open_url(url, None::<&str>) {
+                        eprintln!("[menu] Failed to open URL: {}", e);
+                    } else {
+                        println!("[menu] Successfully opened URL: {}", url);
+                    }
+                }
+            });
+
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

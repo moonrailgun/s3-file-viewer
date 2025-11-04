@@ -8,11 +8,15 @@ import {
   Group,
   Title,
   Box,
+  Anchor,
+  Text,
 } from '@mantine/core';
 import { notifications, Notifications } from '@mantine/notifications';
+import { IconHelp } from '@tabler/icons-react';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { emit } from '@tauri-apps/api/event';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { ConnectionParams } from '../types';
 import {
   saveConnection,
@@ -152,14 +156,48 @@ const ConnectionFormWindow: React.FC = () => {
     }
   };
 
+  // Open documentation
+  const handleOpenDocs = async () => {
+    console.log('[handleOpenDocs] Button clicked');
+    try {
+      console.log('[handleOpenDocs] Opening URL...');
+      await openUrl(
+        'https://s3-file-viewer.moonrailgun.com/configuration-guide.html'
+      );
+      console.log('[handleOpenDocs] URL opened successfully');
+    } catch (error) {
+      console.error('[handleOpenDocs] Failed to open documentation:', error);
+      notifications.show({
+        message: `Failed to open documentation: ${error}`,
+        color: 'red',
+      });
+    }
+  };
+
   return (
     <MantineProvider defaultColorScheme="auto">
       <Notifications position="top-right" />
       <Box p="md">
         <Stack gap="md">
-          <Title order={4}>
-            {editMode ? 'Edit S3 Connection' : 'New S3 Connection'}
-          </Title>
+          <Group justify="start" align="center" gap="xs">
+            <Title order={4}>
+              {editMode ? 'Edit S3 Connection' : 'New S3 Connection'}
+            </Title>
+            <Anchor
+              component="button"
+              type="button"
+              onClick={handleOpenDocs}
+              size="sm"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                cursor: 'pointer',
+              }}
+            >
+              <IconHelp size={16} />
+            </Anchor>
+          </Group>
 
           <TextInput
             label="Connection Name"

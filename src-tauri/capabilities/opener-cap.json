@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "opener-cap",
+  "description": "enable opener operations",
+  "windows": ["*"],
+  "permissions": [
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "https://s3-file-viewer.moonrailgun.com/*" },
+        { "url": "https://github.com/*" }
+      ]
+    },
+    "opener:allow-open-path"
+  ]
+}

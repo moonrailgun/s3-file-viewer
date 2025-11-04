@@ -29,7 +29,8 @@
         "webview-cap",
         "event-cap",
         "fs-cap",
-        "dialog-cap"
+        "dialog-cap",
+        "opener-cap"
       ]
     }
   },

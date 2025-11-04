@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/moonrailgun/s3-file-viewer/compare/v1.1.0...v1.2.0) (2025-11-04)
+
+### Features
+
+* add feature which allow user drag to update order of connection list ([d19c366](https://github.com/moonrailgun/s3-file-viewer/commit/d19c3666790308eda9b41186960a14100f21b950))
+* add help link ([cf16b0a](https://github.com/moonrailgun/s3-file-viewer/commit/cf16b0a5871cbfe33e6cf1eef5563bd6ef4aadf3))
+* add mobile platform support ([3b12f7d](https://github.com/moonrailgun/s3-file-viewer/commit/3b12f7db9147b5988f4bf5ce55b5b2bcb615f3e6))
+
 ## [1.1.0](https://github.com/moonrailgun/s3-file-viewer/compare/v1.0.0...v1.1.0) (2025-10-30)
 
 ### Features

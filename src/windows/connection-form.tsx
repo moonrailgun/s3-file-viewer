@@ -9,7 +9,6 @@ import {
   Title,
   Box,
   Anchor,
-  Text,
 } from '@mantine/core';
 import { notifications, Notifications } from '@mantine/notifications';
 import { IconHelp } from '@tabler/icons-react';

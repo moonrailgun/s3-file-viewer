@@ -6,6 +6,9 @@ hero:
   name: "S3 File Viewer"
   text: "Modern S3 Object Storage Manager"
   tagline: Supports AWS S3, MinIO, Cloudflare R2, and other S3-compatible storage services
+  image:
+    src: /favicon.png
+    alt: S3 File Viewer
   actions:
     - theme: brand
       text: Download

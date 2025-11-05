@@ -1,6 +1,55 @@
 # S3 File Viewer
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Release](https://img.shields.io/github/v/release/moonrailgun/s3-file-viewer)](https://github.com/moonrailgun/s3-file-viewer/releases)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/moonrailgun/s3-file-viewer/publish-to-auto-release.yml)](https://github.com/moonrailgun/s3-file-viewer/actions)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/moonrailgun/s3-file-viewer)
+[![Tauri](https://img.shields.io/badge/Tauri-FFC131?logo=tauri&logoColor=white)](https://tauri.app)
+[![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)](https://reactjs.org)
+[![Rust](https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white)](https://www.rust-lang.org/)
+
+<!-- [![GitHub Downloads](https://img.shields.io/github/downloads/moonrailgun/s3-file-viewer/total)](https://github.com/moonrailgun/s3-file-viewer/releases) -->
+
 A Tauri + React based S3-compatible object storage browser that provides an intuitive graphical interface to manage and browse your S3 bucket contents.
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="./docs/public/preview1.png" alt="List View" width="100%">
+  <br/>
+  <em>List View - Browse your S3 files with detailed information</em>
+</p>
+
+<p align="center">
+  <img src="./docs/public/preview2.png" alt="Thumbnail View" width="100%">
+  <br/>
+  <em>Thumbnail View - Visual card layout for easy file browsing</em>
+</p>
+
+## 🎬 Demo Videos
+
+<table>
+  <tr>
+    <td width="50%">
+      <h3 align="center">File Browsing & Management</h3>
+      <p align="center">
+        <video src="https://github.com/moonrailgun/s3-file-viewer/raw/master/docs/public/video1.mp4" width="100%" controls>
+          Your browser does not support the video tag.
+        </video>
+      </p>
+      <p align="center"><em>Browse buckets, upload files, and manage your S3 storage</em></p>
+    </td>
+    <td width="50%">
+      <h3 align="center">File Preview & Operations</h3>
+      <p align="center">
+        <video src="https://github.com/moonrailgun/s3-file-viewer/raw/master/docs/public/video2.mp4" width="100%" controls>
+          Your browser does not support the video tag.
+        </video>
+      </p>
+      <p align="center"><em>Preview images, copy URLs, and switch between views</em></p>
+    </td>
+  </tr>
+</table>
 
 ## ✨ Features
 

@@ -2,6 +2,26 @@
 
 Welcome to the S3 File Viewer configuration guide! This guide will help you configure connections to various S3-compatible storage services.
 
+## 🎬 Video Tutorials
+
+Before diving into the configuration details, watch these quick demos to see S3 File Viewer in action:
+
+### File Browsing & Management
+<video src="/video1.mp4" controls style="width: 100%; max-width: 800px; margin: 20px 0;">
+  Your browser does not support the video tag.
+</video>
+
+*Browse buckets, upload files, and manage your S3 storage with an intuitive interface*
+
+### File Preview & Operations
+<video src="/video2.mp4" controls style="width: 100%; max-width: 800px; margin: 20px 0;">
+  Your browser does not support the video tag.
+</video>
+
+*Preview images, copy URLs, switch between list and thumbnail views*
+
+---
+
 ## Quick Start
 
 S3 File Viewer is a modern desktop application for browsing and managing S3-compatible object storage services. Whether you're using AWS S3, MinIO, Cloudflare R2, or other S3-compatible services, this guide will help you quickly set up connections.

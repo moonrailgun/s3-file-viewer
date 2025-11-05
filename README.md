@@ -40,18 +40,14 @@ A Tauri + React based S3-compatible object storage browser that provides an intu
     <td width="50%">
       <h3 align="center">File Browsing & Management</h3>
       <p align="center">
-        <video src="./docs/public/video1.gif" width="100%" controls>
-          Your browser does not support the video tag.
-        </video>
+        <img src="./docs/public/video1.gif" alt="File Browsing & Management" width="100%">
       </p>
       <p align="center"><em>Browse buckets, upload files, and manage your S3 storage</em></p>
     </td>
     <td width="50%">
       <h3 align="center">File Preview & Operations</h3>
       <p align="center">
-        <video src="./docs/public/video2.gif" width="100%" controls>
-          Your browser does not support the video tag.
-        </video>
+        <img src="./docs/public/video2.gif" alt="File Preview & Operations" width="100%">
       </p>
       <p align="center"><em>Preview images, copy URLs, and switch between views</em></p>
     </td>

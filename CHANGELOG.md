@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.1](https://github.com/moonrailgun/s3-file-viewer/compare/v1.2.0...v1.2.1) (2025-11-05)
+
+### Others
+
+* remove unused Text import from connection-form ([cc60375](https://github.com/moonrailgun/s3-file-viewer/commit/cc60375458c1457af3d4d3d030fd9c4769219ac0))
+
 ## [1.2.0](https://github.com/moonrailgun/s3-file-viewer/compare/v1.1.0...v1.2.0) (2025-11-04)
 
 ### Features

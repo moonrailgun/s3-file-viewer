@@ -14,17 +14,24 @@ A Tauri + React based S3-compatible object storage browser that provides an intu
 
 ## 📸 Screenshots
 
-<p align="center">
-  <img src="./docs/public/preview1.png" alt="List View" width="100%">
-  <br/>
-  <em>List View - Browse your S3 files with detailed information</em>
-</p>
-
-<p align="center">
-  <img src="./docs/public/preview2.png" alt="Thumbnail View" width="100%">
-  <br/>
-  <em>Thumbnail View - Visual card layout for easy file browsing</em>
-</p>
+<table>
+  <tr>
+    <td width="50%">
+      <h3 align="center">List View</h3>
+      <p align="center">
+        <img src="./docs/public/preview1.png" alt="List View" width="100%">
+      </p>
+      <p align="center"><em>Browse your S3 files with detailed information</em></p>
+    </td>
+    <td width="50%">
+      <h3 align="center">Thumbnail View</h3>
+      <p align="center">
+        <img src="./docs/public/preview2.png" alt="Thumbnail View" width="100%">
+      </p>
+      <p align="center"><em>Visual card layout for easy file browsing</em></p>
+    </td>
+  </tr>
+</table>
 
 ## 🎬 Demo Videos
 
@@ -33,7 +40,7 @@ A Tauri + React based S3-compatible object storage browser that provides an intu
     <td width="50%">
       <h3 align="center">File Browsing & Management</h3>
       <p align="center">
-        <video src="https://github.com/moonrailgun/s3-file-viewer/raw/master/docs/public/video1.mp4" width="100%" controls>
+        <video src="./docs/public/video1.gif" width="100%" controls>
           Your browser does not support the video tag.
         </video>
       </p>
@@ -42,7 +49,7 @@ A Tauri + React based S3-compatible object storage browser that provides an intu
     <td width="50%">
       <h3 align="center">File Preview & Operations</h3>
       <p align="center">
-        <video src="https://github.com/moonrailgun/s3-file-viewer/raw/master/docs/public/video2.mp4" width="100%" controls>
+        <video src="./docs/public/video2.gif" width="100%" controls>
           Your browser does not support the video tag.
         </video>
       </p>

@@ -20,7 +20,6 @@ import {
 } from '../utils/common';
 import { getFileIconWithProps } from '../utils/icons';
 import { ImagePreview } from './ImagePreview';
-import { VideoPreview } from './VideoPreview';
 
 export type ObjectThumbProps = {
   obj: S3ObjectInfo;
@@ -72,20 +71,14 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
           ref={containerRef}
           p="xs"
           gap="xs"
+          className="w-[220px] cursor-pointer rounded-xl border-2 transition-all duration-200 select-none"
           style={{
-            border: `2px solid ${selectedFileKey === obj.key ? hoverBorderColor : borderColor}`,
-            borderRadius: 12,
-            width: 220,
-            cursor: 'pointer',
+            borderColor:
+              selectedFileKey === obj.key ? hoverBorderColor : borderColor,
             background:
               selectedFileKey === obj.key
                 ? 'light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5))'
                 : 'var(--mantine-color-body)',
-            transition: 'all 0.2s ease',
-            userSelect: 'none',
-            WebkitUserSelect: 'none',
-            MozUserSelect: 'none',
-            msUserSelect: 'none',
           }}
           onClick={() => {
             if (obj.is_dir) {
@@ -112,112 +105,56 @@ export const ObjectThumb: React.FC<ObjectThumbProps> = ({
         >
           {obj.is_dir ? (
             <Box
+              className="flex h-[140px] w-full flex-col items-center justify-center rounded-md border-2 border-dashed"
               style={{
-                width: '100%',
-                height: 140,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
                 background:
                   'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))',
-                borderRadius: 6,
-                border: `2px dashed ${borderColor}`,
+                borderColor: borderColor,
               }}
             >
               {getFileIconWithProps(obj.key, obj.is_dir, iconProps)}
             </Box>
           ) : isImageKey(obj.key) ? (
-            <Box ref={imgRef} style={{ width: '100%', height: 140 }}>
+            <Box ref={imgRef} className="h-[140px] w-full">
               <ImagePreview
                 fileKey={obj.key}
                 alt={obj.key}
                 ensureObjectUrl={ensureObjectUrl}
                 lazy={true}
                 inView={inView}
+                className="h-[140px] w-full cursor-pointer rounded-md object-cover"
                 style={{
-                  width: '100%',
-                  height: 140,
-                  objectFit: 'cover',
-                  borderRadius: 6,
                   background: 'var(--mantine-color-body)',
-                  cursor: 'pointer',
                 }}
               />
             </Box>
           ) : isVideoKey(obj.key) ? (
             <Box
-              ref={imgRef}
+              className="relative flex h-[140px] w-full flex-col items-center justify-center rounded-md border"
               style={{
-                width: '100%',
-                height: 140,
-                position: 'relative',
-                overflow: 'hidden',
-                borderRadius: 6,
+                background:
+                  'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))',
+                borderColor: borderColor,
               }}
             >
-              <VideoPreview
-                fileKey={obj.key}
-                ensureObjectUrl={ensureObjectUrl}
-                style={{
-                  width: '100%',
-                  height: 140,
-                  objectFit: 'cover',
-                  borderRadius: 6,
-                  background: 'var(--mantine-color-body)',
-                }}
-                controls={false}
-                muted
-              />
-              {/* Play button overlay */}
+              {getFileIconWithProps(obj.key, obj.is_dir, iconProps)}
+              {/* Play button overlay to indicate it's a video */}
               <Box
+                className="absolute right-2 bottom-2 flex h-8 w-8 items-center justify-center rounded-full shadow-md"
                 style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'rgba(0, 0, 0, 0.3)',
-                  borderRadius: 6,
-                  cursor: 'pointer',
-                  pointerEvents: 'none',
+                  background: 'var(--mantine-color-blue-6)',
                 }}
               >
-                <Box
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: '50%',
-                    background: 'rgba(255, 255, 255, 0.9)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Play
-                    size={24}
-                    style={{ marginLeft: 4 }}
-                    color="var(--mantine-color-blue-6)"
-                  />
-                </Box>
+                <Play size={16} className="ml-0.5" color="white" />
               </Box>
             </Box>
           ) : (
             <Box
+              className="flex h-[140px] w-full flex-col items-center justify-center rounded-md border"
               style={{
-                width: '100%',
-                height: 140,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
                 background:
                   'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))',
-                borderRadius: 6,
-                border: `1px solid ${borderColor}`,
+                borderColor: borderColor,
               }}
             >
               {getFileIconWithProps(obj.key, obj.is_dir, iconProps)}

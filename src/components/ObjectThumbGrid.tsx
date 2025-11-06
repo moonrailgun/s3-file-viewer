@@ -120,21 +120,18 @@ export const ObjectThumbGrid: React.FC<ObjectThumbGridProps> = ({
               key={virtualRow.key}
               data-index={virtualRow.index}
               ref={virtualizer.measureElement}
-              className="absolute top-0 left-0 w-full"
+              className="absolute top-0 left-0 w-full px-2"
               style={{
                 transform: `translateY(${virtualRow.start}px)`,
                 paddingTop: `${THUMB_GAP}px`,
                 paddingBottom: `${THUMB_GAP}px`,
-                paddingLeft: '8px',
-                paddingRight: '8px',
               }}
             >
               <div
+                className="grid justify-center"
                 style={{
-                  display: 'grid',
                   gridTemplateColumns: `repeat(${columnsPerRow}, ${THUMB_WIDTH}px)`,
                   gap: `${THUMB_GAP}px`,
-                  justifyContent: 'center',
                 }}
               >
                 {rowObjects.map((obj) => (

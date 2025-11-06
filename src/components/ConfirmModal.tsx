@@ -32,9 +32,9 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <IconAlertTriangle
             size={24}
             color="var(--mantine-color-orange-6)"
-            style={{ marginTop: 2 }}
+            className="mt-0.5"
           />
-          <div style={{ flex: 1 }}>
+          <div className="flex-1">
             <Text size="sm" fw={500} mb="xs">
               {message}
             </Text>
@@ -42,14 +42,12 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
               <Text
                 size="sm"
                 c="dimmed"
+                className="rounded border p-2 break-all"
                 style={{
-                  wordBreak: 'break-all',
                   backgroundColor:
                     'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border:
-                    '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
+                  borderColor:
+                    'light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
                 }}
               >
                 {itemName}

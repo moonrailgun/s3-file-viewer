@@ -4,6 +4,7 @@ import { CreateFolderModal } from './CreateFolderModal';
 import { CreateBucketModal } from './CreateBucketModal';
 import { BucketDetailsModal } from './BucketDetailsModal';
 import { ConfirmModal } from './ConfirmModal';
+import { RenameFavoriteModal } from './RenameFavoriteModal';
 import type { BucketInfo } from '../types';
 
 interface AppModalsProps {
@@ -35,6 +36,18 @@ interface AppModalsProps {
   bucketDetailsModalOpened: boolean;
   bucketToShow: BucketInfo | null;
   onBucketDetailsClose: () => void;
+
+  // Rename favorite modal
+  renameFavoriteModalOpened: boolean;
+  favoriteToRename: { id: string; name: string } | null;
+  onRenameFavoriteClose: () => void;
+  onRenameFavoriteConfirm: (newName: string) => void;
+
+  // Delete favorite modal
+  deleteFavoriteModalOpened: boolean;
+  favoriteToDelete: { id: string; name: string } | null;
+  onDeleteFavoriteClose: () => void;
+  onDeleteFavoriteConfirm: () => void;
 }
 
 /**
@@ -62,6 +75,14 @@ export const AppModals = React.memo(
     bucketDetailsModalOpened,
     bucketToShow,
     onBucketDetailsClose,
+    renameFavoriteModalOpened,
+    favoriteToRename,
+    onRenameFavoriteClose,
+    onRenameFavoriteConfirm,
+    deleteFavoriteModalOpened,
+    favoriteToDelete,
+    onDeleteFavoriteClose,
+    onDeleteFavoriteConfirm,
   }: AppModalsProps) => {
     return (
       <>
@@ -106,6 +127,26 @@ export const AppModals = React.memo(
           opened={bucketDetailsModalOpened}
           onClose={onBucketDetailsClose}
           bucket={bucketToShow}
+        />
+
+        {/* Rename Favorite Modal */}
+        <RenameFavoriteModal
+          opened={renameFavoriteModalOpened}
+          onClose={onRenameFavoriteClose}
+          onConfirm={onRenameFavoriteConfirm}
+          currentName={favoriteToRename?.name || ''}
+        />
+
+        {/* Delete Favorite Confirmation Modal */}
+        <ConfirmModal
+          opened={deleteFavoriteModalOpened}
+          onClose={onDeleteFavoriteClose}
+          onConfirm={onDeleteFavoriteConfirm}
+          title="Remove Favorite"
+          message="Are you sure you want to remove this favorite?"
+          itemName={favoriteToDelete?.name || ''}
+          confirmLabel="Remove"
+          confirmColor="red"
         />
       </>
     );

@@ -17,6 +17,8 @@ import {
   IconLayoutGrid,
   IconMenu2,
   IconSearch,
+  IconStar,
+  IconStarFilled,
 } from '@tabler/icons-react';
 import { CreateFolderModal } from './CreateFolderModal';
 import { SearchBar } from './SearchBar';
@@ -46,6 +48,9 @@ export type CompactToolbarProps = {
   isSearching?: boolean;
   onSearch?: (query: string, mode: SearchMode) => void;
   onClearSearch?: () => void;
+  // Favorites
+  isFavorited?: boolean;
+  onToggleFavorite?: () => void;
 };
 
 const CompactToolbarComponent: React.FC<CompactToolbarProps> = ({
@@ -64,6 +69,8 @@ const CompactToolbarComponent: React.FC<CompactToolbarProps> = ({
   isSearching = false,
   onSearch,
   onClearSearch,
+  isFavorited = false,
+  onToggleFavorite,
 }) => {
   const [createFolderModalOpened, setCreateFolderModalOpened] = useState(false);
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -236,6 +243,24 @@ const CompactToolbarComponent: React.FC<CompactToolbarProps> = ({
                 </Tooltip>
               )}
 
+              {/* Favorite button */}
+              {onToggleFavorite && (
+                <Tooltip label={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'} withArrow>
+                  <ActionIcon
+                    size="sm"
+                    variant="subtle"
+                    onClick={onToggleFavorite}
+                    color={isFavorited ? 'yellow' : undefined}
+                  >
+                    {isFavorited ? (
+                      <IconStarFilled size={14} />
+                    ) : (
+                      <IconStar size={14} />
+                    )}
+                  </ActionIcon>
+                </Tooltip>
+              )}
+
               <Tooltip label={`Refresh (${getHotkeyDisplay('R')})`} withArrow>
                 <ActionIcon
                   size="sm"
@@ -342,6 +367,7 @@ export const CompactToolbar = React.memo(
       prevProps.searchQuery === nextProps.searchQuery &&
       prevProps.searchMode === nextProps.searchMode &&
       prevProps.isSearching === nextProps.isSearching &&
+      prevProps.isFavorited === nextProps.isFavorited &&
       prevProps.breadcrumbItems.length === nextProps.breadcrumbItems.length
       // Function props are not compared (should be stable from useCallback)
     );

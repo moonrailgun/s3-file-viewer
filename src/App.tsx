@@ -21,8 +21,15 @@ import { ContextMenuWrapper } from './components/ContextMenuWrapper';
 import { AppModals } from './components/AppModals';
 import { UploadProgressList } from './components/UploadProgressBar';
 import { FileDetailsSidebar } from './components/FileDetailsSidebar';
-import type { S3ObjectInfo, BucketInfo } from './types';
+import type { S3ObjectInfo, BucketInfo, Favorite } from './types';
 import { isMobilePlatform } from './utils/platform';
+import {
+  saveFavorite,
+  removeFavorite,
+  updateFavorite,
+  isFavorited,
+  getFavoriteByLocation,
+} from './utils/favoriteManager';
 
 function App() {
   const {
@@ -64,6 +71,20 @@ function App() {
   const [bucketDetailsModalOpened, setBucketDetailsModalOpened] =
     useState(false);
   const [bucketToShow, setBucketToShow] = useState<BucketInfo | null>(null);
+
+  // Favorites state
+  const [renameFavoriteModalOpened, setRenameFavoriteModalOpened] =
+    useState(false);
+  const [favoriteToRename, setFavoriteToRename] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [deleteFavoriteModalOpened, setDeleteFavoriteModalOpened] =
+    useState(false);
+  const [favoriteToDelete, setFavoriteToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   // Mobile sidebar state
   // On mobile platforms (iOS/Android), default to open the sidebar
@@ -186,6 +207,120 @@ function App() {
     setSelectedFile(null);
   }, [fetchObjects]);
 
+  // Check if current location is favorited
+  const currentIsFavorited = activeConnectionId && bucket
+    ? isFavorited(activeConnectionId, bucket, prefix || '')
+    : false;
+
+  // Handle toggle favorite
+  const handleToggleFavorite = useCallback(() => {
+    if (!activeConnectionId || !bucket) return;
+
+    if (currentIsFavorited) {
+      // Remove favorite
+      const favorite = getFavoriteByLocation(
+        activeConnectionId,
+        bucket,
+        prefix || ''
+      );
+      if (favorite) {
+        removeFavorite(favorite.id);
+        // Trigger refresh in FavoritesSection
+        window.dispatchEvent(new Event('refresh-favorites'));
+        notifications.show({
+          message: 'Removed from favorites',
+          color: 'blue',
+          position: 'bottom-right',
+        });
+      }
+    } else {
+      // Add favorite
+      saveFavorite(activeConnectionId, bucket, prefix || '');
+      // Trigger refresh in FavoritesSection
+      window.dispatchEvent(new Event('refresh-favorites'));
+      notifications.show({
+        message: 'Added to favorites',
+        color: 'green',
+        position: 'bottom-right',
+      });
+    }
+  }, [activeConnectionId, bucket, prefix, currentIsFavorited]);
+
+  // Handle open favorite
+  const handleOpenFavorite = useCallback(
+    async (favorite: Favorite) => {
+      // Check if we need to switch connections
+      if (activeConnectionId !== favorite.connectionId) {
+        await connectToSavedConnection(favorite.connectionId);
+      }
+
+      // Switch to the bucket and prefix
+      selectConnectionBucket(favorite.connectionId, favorite.bucket);
+      setPrefix(favorite.prefix);
+      setSelectedFile(null);
+
+      // Close mobile sidebar if needed
+      if (isMobile) closeNavbar();
+
+      notifications.show({
+        message: `Opened favorite: ${favorite.name}`,
+        color: 'green',
+        position: 'bottom-right',
+      });
+    },
+    [activeConnectionId, connectToSavedConnection, selectConnectionBucket, setPrefix, isMobile, closeNavbar]
+  );
+
+  // Handle rename favorite
+  const handleRenameFavorite = useCallback((favorite: Favorite) => {
+    setFavoriteToRename({ id: favorite.id, name: favorite.name });
+    setRenameFavoriteModalOpened(true);
+  }, []);
+
+  // Handle rename favorite confirm
+  const handleRenameFavoriteConfirm = useCallback(
+    (newName: string) => {
+      if (favoriteToRename) {
+        updateFavorite(favoriteToRename.id, { name: newName });
+        // Trigger refresh in FavoritesSection
+        window.dispatchEvent(new Event('refresh-favorites'));
+        setRenameFavoriteModalOpened(false);
+        setFavoriteToRename(null);
+        notifications.show({
+          message: 'Favorite renamed',
+          color: 'green',
+          position: 'bottom-right',
+        });
+      }
+    },
+    [favoriteToRename]
+  );
+
+  // Handle delete favorite request
+  const handleDeleteFavorite = useCallback(
+    (favoriteId: string, favoriteName: string) => {
+      setFavoriteToDelete({ id: favoriteId, name: favoriteName });
+      setDeleteFavoriteModalOpened(true);
+    },
+    []
+  );
+
+  // Handle delete favorite confirm
+  const handleDeleteFavoriteConfirm = useCallback(() => {
+    if (favoriteToDelete) {
+      removeFavorite(favoriteToDelete.id);
+      // Trigger refresh in FavoritesSection
+      window.dispatchEvent(new Event('refresh-favorites'));
+      setDeleteFavoriteModalOpened(false);
+      setFavoriteToDelete(null);
+      notifications.show({
+        message: 'Favorite removed',
+        color: 'blue',
+        position: 'bottom-right',
+      });
+    }
+  }, [favoriteToDelete]);
+
   return (
     <AppShell
       navbar={{
@@ -225,6 +360,9 @@ function App() {
             connectionOps.handleRequestDeleteConnection
           }
           onShowBucketDetails={handleShowBucketDetails}
+          onOpenFavorite={handleOpenFavorite}
+          onRenameFavorite={handleRenameFavorite}
+          onDeleteFavorite={handleDeleteFavorite}
           onCloseMobile={closeNavbar}
           isMobile={isMobile}
         />
@@ -257,6 +395,8 @@ function App() {
               isSearching={isSearching}
               onSearch={searchObjects}
               onClearSearch={clearSearch}
+              isFavorited={currentIsFavorited}
+              onToggleFavorite={handleToggleFavorite}
             />
 
             <ContextMenuWrapper
@@ -360,6 +500,20 @@ function App() {
         bucketDetailsModalOpened={bucketDetailsModalOpened}
         bucketToShow={bucketToShow}
         onBucketDetailsClose={() => setBucketDetailsModalOpened(false)}
+        renameFavoriteModalOpened={renameFavoriteModalOpened}
+        favoriteToRename={favoriteToRename}
+        onRenameFavoriteClose={() => {
+          setRenameFavoriteModalOpened(false);
+          setFavoriteToRename(null);
+        }}
+        onRenameFavoriteConfirm={handleRenameFavoriteConfirm}
+        deleteFavoriteModalOpened={deleteFavoriteModalOpened}
+        favoriteToDelete={favoriteToDelete}
+        onDeleteFavoriteClose={() => {
+          setDeleteFavoriteModalOpened(false);
+          setFavoriteToDelete(null);
+        }}
+        onDeleteFavoriteConfirm={handleDeleteFavoriteConfirm}
       />
 
       {/* Hidden file input for context menu upload */}

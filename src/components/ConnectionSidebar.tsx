@@ -29,11 +29,12 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
 } from '@/components/ui/context-menu';
-import { SavedConnection, BucketInfo } from '../types';
+import { SavedConnection, BucketInfo, Favorite } from '../types';
 import {
   loadSavedConnections,
   reorderConnections,
 } from '../utils/connectionManager';
+import { FavoritesSection } from './FavoritesSection';
 import {
   DndContext,
   closestCenter,
@@ -328,6 +329,10 @@ export type ConnectionSidebarProps = {
     connectionName: string
   ) => void;
   onShowBucketDetails: (bucket: BucketInfo) => void;
+  // Favorites
+  onOpenFavorite: (favorite: Favorite) => void;
+  onRenameFavorite: (favorite: Favorite) => void;
+  onDeleteFavorite: (favoriteId: string, favoriteName: string) => void;
   // Mobile support
   onCloseMobile?: () => void;
   isMobile?: boolean;
@@ -346,6 +351,9 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
   onEditConnection,
   onRequestDeleteConnection,
   onShowBucketDetails,
+  onOpenFavorite,
+  onRenameFavorite,
+  onDeleteFavorite,
   onCloseMobile,
   isMobile = false,
 }) => {
@@ -508,6 +516,13 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
           )}
         </Group>
       </Box>
+
+      {/* Favorites Section */}
+      <FavoritesSection
+        onOpenFavorite={onOpenFavorite}
+        onRenameFavorite={onRenameFavorite}
+        onDeleteFavorite={onDeleteFavorite}
+      />
 
       {/* Connections list */}
       <ContextMenu>

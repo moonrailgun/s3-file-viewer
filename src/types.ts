@@ -57,3 +57,12 @@ export type BucketDetails = {
 };
 
 export type SearchMode = 'fuzzy' | 'regex';
+
+export type Favorite = {
+  id: string;
+  name: string;
+  connectionId: string;
+  bucket: string;
+  prefix: string;
+  createdAt: string;
+};

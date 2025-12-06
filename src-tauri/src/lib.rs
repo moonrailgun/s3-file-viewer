@@ -420,7 +420,6 @@ async fn search_objects(
         return Ok(Vec::new());
     }
 
-    // First, get all objects in the current directory using list_objects logic
     let guard = state.lock().await;
     let app = match guard.as_ref() {
         Some(app) => app,
@@ -429,6 +428,63 @@ async fn search_objects(
             return Err("Not connected".to_string());
         }
     };
+
+    // Strategy 1: Exact prefix match using S3 API
+    // Construct search prefix by combining current prefix with search query
+    let search_prefix = if let Some(p) = &prefix {
+        if !p.is_empty() {
+            format!("{}{}", p, search_query)
+        } else {
+            search_query.clone()
+        }
+    } else {
+        search_query.clone()
+    };
+
+    println!(
+        "[search_objects] Strategy 1 - Prefix match with: {}",
+        search_prefix
+    );
+
+    let mut prefix_matched_objects: Vec<S3ObjectInfo> = Vec::new();
+
+    // Use prefix parameter for exact matching (without delimiter to search deeper)
+    let prefix_req = app
+        .s3_client
+        .list_objects_v2()
+        .bucket(bucket.clone())
+        .prefix(&search_prefix)
+        .max_keys(100); // Limit to avoid too many results
+
+    if let Ok(prefix_resp) = prefix_req.send().await {
+        println!(
+            "[search_objects] Prefix match found {} objects",
+            prefix_resp.contents().len()
+        );
+
+        for obj in prefix_resp.contents() {
+            let key = obj.key().unwrap_or_default().to_string();
+            let size = obj.size().unwrap_or_default();
+            let last_modified = obj
+                .last_modified()
+                .and_then(|d: &DateTime| d.fmt(aws_smithy_types::date_time::Format::DateTime).ok());
+
+            // Check if it's a directory marker (ends with /)
+            let is_dir = key.ends_with('/');
+
+            prefix_matched_objects.push(S3ObjectInfo {
+                key,
+                size,
+                last_modified,
+                is_dir,
+            });
+        }
+    } else {
+        println!("[search_objects] Prefix match failed, continuing with fuzzy search only");
+    }
+
+    // Strategy 2: List current directory and filter in code (original logic)
+    println!("[search_objects] Strategy 2 - Listing current directory for fuzzy/regex search");
 
     let mut req = app.s3_client.list_objects_v2().bucket(bucket.clone());
     if let Some(p) = &prefix {
@@ -479,7 +535,7 @@ async fn search_objects(
         });
     }
 
-    // Now filter based on search query and mode
+    // Filter based on search query and mode
     let filtered: Vec<S3ObjectInfo> = match search_mode.as_str() {
         "regex" => {
             // Regex mode
@@ -512,8 +568,35 @@ async fn search_objects(
         }
     };
 
-    println!("[search_objects] Found {} matching objects", filtered.len());
-    Ok(filtered)
+    println!(
+        "[search_objects] Fuzzy/regex search found {} objects",
+        filtered.len()
+    );
+
+    // Merge results and deduplicate by key
+    use std::collections::HashMap;
+    let mut merged_map: HashMap<String, S3ObjectInfo> = HashMap::new();
+
+    // Add prefix matched objects first
+    for obj in prefix_matched_objects {
+        merged_map.insert(obj.key.clone(), obj);
+    }
+
+    // Add filtered objects, avoiding duplicates
+    for obj in filtered {
+        merged_map.entry(obj.key.clone()).or_insert(obj);
+    }
+
+    let mut final_results: Vec<S3ObjectInfo> = merged_map.into_values().collect();
+
+    // Sort by key for consistent ordering
+    final_results.sort_by(|a, b| a.key.cmp(&b.key));
+
+    println!(
+        "[search_objects] Total merged results: {} objects",
+        final_results.len()
+    );
+    Ok(final_results)
 }
 
 #[cfg(not(any(target_os = "ios", target_os = "android")))]

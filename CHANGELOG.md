@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.0](https://github.com/moonrailgun/s3-file-viewer/compare/v1.2.1...v1.3.0) (2025-12-06)
+
+### Features
+
+* add favorite feature ([8e64010](https://github.com/moonrailgun/s3-file-viewer/commit/8e64010f9041813cc2c707560093a6b5be31d0fd))
+* enhance search_objects function with prefix matching and result merging ([89ec5fd](https://github.com/moonrailgun/s3-file-viewer/commit/89ec5fd672b3756daf4b4dce4f7bf34d6b8311be))
+
+### Document
+
+* update README ([d8b58de](https://github.com/moonrailgun/s3-file-viewer/commit/d8b58de564ad39a561fca65e6783618eb4167874))
+* update README ([e0d945c](https://github.com/moonrailgun/s3-file-viewer/commit/e0d945c9a57a59b17bd4fea8399d85e37c08b7e0))
+* update website and README ([05d9cfe](https://github.com/moonrailgun/s3-file-viewer/commit/05d9cfe314f61adbef9e6bbc2be0a913db8238b6))
+
 ## [1.2.1](https://github.com/moonrailgun/s3-file-viewer/compare/v1.2.0...v1.2.1) (2025-11-05)
 
 ### Others

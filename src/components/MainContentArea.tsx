@@ -18,6 +18,9 @@ interface MainContentAreaProps {
   onPreviewExternal: (key: string) => void;
   onSelectFile: (file: S3ObjectInfo | null) => void;
   ensureObjectUrl: (key: string) => Promise<string | undefined>;
+  hasMore: boolean;
+  loadingMore: boolean;
+  onLoadMore: () => void;
 }
 
 /**
@@ -38,6 +41,9 @@ export const MainContentArea = React.memo(
     onPreviewExternal,
     onSelectFile,
     ensureObjectUrl,
+    hasMore,
+    loadingMore,
+    onLoadMore,
   }: MainContentAreaProps) => {
     return (
       <Box className="relative flex-1 overflow-auto" p="xs" {...dragHandlers}>
@@ -72,6 +78,9 @@ export const MainContentArea = React.memo(
             onPreviewExternal={onPreviewExternal}
             onSelectFile={onSelectFile}
             selectedFileKey={selectedFile?.key}
+            hasMore={hasMore}
+            loadingMore={loadingMore}
+            onLoadMore={onLoadMore}
           />
         ) : (
           <ObjectThumbGrid
@@ -83,6 +92,9 @@ export const MainContentArea = React.memo(
             onPreviewExternal={onPreviewExternal}
             onSelectFile={onSelectFile}
             selectedFileKey={selectedFile?.key}
+            hasMore={hasMore}
+            loadingMore={loadingMore}
+            onLoadMore={onLoadMore}
           />
         )}
       </Box>

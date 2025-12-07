@@ -21,6 +21,12 @@ export type S3ObjectInfo = {
   is_dir: boolean;
 };
 
+export type ListObjectsResult = {
+  objects: S3ObjectInfo[];
+  next_continuation_token?: string;
+  is_truncated: boolean;
+};
+
 export type BucketInfo = {
   name: string;
   region: string;

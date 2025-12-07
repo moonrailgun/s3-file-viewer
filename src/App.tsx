@@ -46,6 +46,8 @@ function App() {
     searchQuery,
     searchMode,
     isSearching,
+    hasMore,
+    loadingMore,
     setView,
     setPrefix,
     ensureObjectUrl,
@@ -60,6 +62,7 @@ function App() {
     deleteConnectionFromState,
     searchObjects,
     clearSearch,
+    loadMoreObjects,
   } = useS3Browser();
 
   // Local state
@@ -423,6 +426,9 @@ function App() {
                 onPreviewExternal={fileOps.previewInNewWindow}
                 onSelectFile={setSelectedFile}
                 ensureObjectUrl={ensureObjectUrl}
+                hasMore={hasMore}
+                loadingMore={loadingMore}
+                onLoadMore={loadMoreObjects}
               />
             </ContextMenuWrapper>
 

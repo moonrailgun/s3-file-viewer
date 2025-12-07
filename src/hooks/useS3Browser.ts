@@ -8,6 +8,7 @@ import {
   ConnectionParams,
   S3ObjectInfo,
   SearchMode,
+  ListObjectsResult,
 } from '../types';
 import {
   updateConnectionLastUsed,
@@ -77,6 +78,13 @@ export function useS3Browser() {
   const [searchMode, setSearchMode] = useState<SearchMode>('fuzzy');
   const [isSearching, setIsSearching] = useState(false);
   const [originalObjects, setOriginalObjects] = useState<S3ObjectInfo[]>([]);
+
+  // Pagination state
+  const [nextContinuationToken, setNextContinuationToken] = useState<
+    string | null
+  >(null);
+  const [hasMore, setHasMore] = useState<boolean>(false);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
   // Use refs to avoid function recreation on every objects change
   const objectsRef = useRef<S3ObjectInfo[]>([]);
@@ -336,8 +344,12 @@ export function useS3Browser() {
       const res = (await invoke('list_objects', {
         bucket,
         prefix: prefix || null,
-      })) as S3ObjectInfo[];
-      setObjects(res);
+        continuation_token: null,
+        max_keys: 1000,
+      })) as ListObjectsResult;
+      setObjects(res.objects);
+      setNextContinuationToken(res.next_continuation_token || null);
+      setHasMore(res.is_truncated);
       // Clear search when fetching new objects
       setSearchQuery('');
       setIsSearching(false);
@@ -352,6 +364,30 @@ export function useS3Browser() {
       setLoading(false);
     }
   }, [bucket, prefix]);
+
+  const loadMoreObjects = useCallback(async () => {
+    if (!bucket || !nextContinuationToken || loadingMore) return;
+    try {
+      setLoadingMore(true);
+      const res = (await invoke('list_objects', {
+        bucket,
+        prefix: prefix || null,
+        continuation_token: nextContinuationToken,
+        max_keys: 1000,
+      })) as ListObjectsResult;
+      setObjects((prev) => [...prev, ...res.objects]);
+      setNextContinuationToken(res.next_continuation_token || null);
+      setHasMore(res.is_truncated);
+    } catch (err: any) {
+      notifications.show({
+        message: `Load more failed: ${err}`,
+        color: 'red',
+        position: 'bottom-right',
+      });
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [bucket, prefix, nextContinuationToken, loadingMore]);
 
   // Search objects function - stable reference with refs
   const searchObjects = useCallback(
@@ -560,6 +596,9 @@ export function useS3Browser() {
     searchQuery,
     searchMode,
     isSearching,
+    // Pagination state
+    hasMore,
+    loadingMore,
     // setters
     setView,
     setShowConnect,
@@ -586,5 +625,7 @@ export function useS3Browser() {
     // Search actions
     searchObjects,
     clearSearch,
+    // Pagination actions
+    loadMoreObjects,
   } as const;
 }

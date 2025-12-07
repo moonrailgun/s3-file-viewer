@@ -323,14 +323,26 @@ async fn create_bucket(
 }
 
 #[cfg(not(any(target_os = "ios", target_os = "android")))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ListObjectsResult {
+    objects: Vec<S3ObjectInfo>,
+    next_continuation_token: Option<String>,
+    is_truncated: bool,
+}
+
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
 #[tauri::command]
 async fn list_objects(
     bucket: String,
     prefix: Option<String>,
+    continuation_token: Option<String>,
+    max_keys: Option<i32>,
     state: tauri::State<'_, tokio::sync::Mutex<Option<AppState>>>,
-) -> Result<Vec<S3ObjectInfo>, String> {
-    // Log: received list_objects request
-    println!("[list_objects] bucket: {}, prefix: {:?}", bucket, prefix);
+) -> Result<ListObjectsResult, String> {
+    println!(
+        "[list_objects] bucket: {}, prefix: {:?}, continuation_token: {:?}, max_keys: {:?}",
+        bucket, prefix, continuation_token, max_keys
+    );
 
     let guard = state.lock().await;
     let app = match guard.as_ref() {
@@ -341,7 +353,6 @@ async fn list_objects(
         }
     };
 
-    // Log: preparing list_objects_v2 request
     let mut req = app.s3_client.list_objects_v2().bucket(bucket.clone());
     if let Some(p) = &prefix {
         if !p.is_empty() {
@@ -351,7 +362,15 @@ async fn list_objects(
     }
     req = req.delimiter("/");
 
-    // Log: sending list_objects_v2 request
+    if let Some(token) = continuation_token {
+        println!("[list_objects] Using continuation token");
+        req = req.continuation_token(token);
+    }
+
+    if let Some(keys) = max_keys {
+        req = req.max_keys(keys);
+    }
+
     let resp = match req.send().await {
         Ok(r) => {
             println!("[list_objects] list_objects_v2 request succeeded");
@@ -365,7 +384,6 @@ async fn list_objects(
 
     let mut result: Vec<S3ObjectInfo> = Vec::new();
 
-    // Log: processing common_prefixes (folders)
     for cp in resp.common_prefixes() {
         if let Some(p) = cp.prefix() {
             println!("[list_objects] Found folder: {}", p);
@@ -378,7 +396,6 @@ async fn list_objects(
         }
     }
 
-    // Log: processing contents (files)
     for obj in resp.contents() {
         let key = obj.key().unwrap_or_default().to_string();
         let size = obj.size().unwrap_or_default();
@@ -397,8 +414,21 @@ async fn list_objects(
         });
     }
 
-    println!("[list_objects] Returning {} objects", result.len());
-    Ok(result)
+    let next_continuation_token = resp.next_continuation_token().map(|s| s.to_string());
+    let is_truncated = resp.is_truncated().unwrap_or(false);
+
+    println!(
+        "[list_objects] Returning {} objects, is_truncated: {}, has_next_token: {}",
+        result.len(),
+        is_truncated,
+        next_continuation_token.is_some()
+    );
+
+    Ok(ListObjectsResult {
+        objects: result,
+        next_continuation_token,
+        is_truncated,
+    })
 }
 
 #[cfg(not(any(target_os = "ios", target_os = "android")))]

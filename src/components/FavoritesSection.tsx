@@ -6,13 +6,11 @@ import {
   Text,
   UnstyledButton,
   Collapse,
-  ActionIcon,
   Badge,
   Divider,
 } from '@mantine/core';
 import {
   IconStar,
-  IconStarFilled,
   IconChevronRight,
   IconChevronDown,
 } from '@tabler/icons-react';

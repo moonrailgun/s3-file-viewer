@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.2](https://github.com/moonrailgun/s3-file-viewer/compare/v1.3.1...v1.3.2) (2025-12-08)
+
+### Bug Fixes
+
+* resolve build issue ([8f27b5d](https://github.com/moonrailgun/s3-file-viewer/commit/8f27b5d23e8bb79296aae28b5a85c37c0905a3e5))
+
 ## [1.3.1](https://github.com/moonrailgun/s3-file-viewer/compare/v1.3.0...v1.3.1) (2025-12-08)
 
 ### Features

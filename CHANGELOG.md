@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.1](https://github.com/moonrailgun/s3-file-viewer/compare/v1.3.0...v1.3.1) (2025-12-08)
+
+### Features
+
+* add load more feature ([5d740c4](https://github.com/moonrailgun/s3-file-viewer/commit/5d740c4116fc396291bcb1fe797fe7b0aff6ae32))
+
 ## [1.3.0](https://github.com/moonrailgun/s3-file-viewer/compare/v1.2.1...v1.3.0) (2025-12-06)
 
 ### Features

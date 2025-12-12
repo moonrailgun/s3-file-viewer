@@ -72,8 +72,8 @@ jobs:
             - **`.exe`** - Windows installer (recommended for most users)
             - **`.msi`** - Windows MSI package (for enterprise deployment)
 
-            ### macOS  
-            - **`_aarch64.dmg`** - For Apple Silicon Macs (M1/M2/M3)
+            ### macOS
+            - **`_aarch64.dmg`** - For Apple Silicon Macs (M1/M2/M3/M4)
             - **`_x64.dmg`** - For Intel-based Macs
             - **`.app.tar.gz`** - Portable app bundle (extract and run)
 
@@ -83,7 +83,7 @@ jobs:
             - **`.rpm`** - For Red Hat/Fedora/SUSE systems (`sudo rpm -i filename.rpm`)
 
             ---
-            
+
             💡 **Not sure which version to choose?**
             - **Windows**: Download the `.exe` file
             - **macOS**: Download `_aarch64.dmg` for newer Macs or `_x64.dmg` for older Intel Macs

@@ -870,9 +870,14 @@ pub fn run() {
             let config_guide =
                 MenuItemBuilder::with_id("config_guide", "Configuration Guide").build(app)?;
 
-            // Create Help submenu with custom item
+            // Create GitHub Repository menu item
+            let github_repo =
+                MenuItemBuilder::with_id("github_repo", "GitHub Repository").build(app)?;
+
+            // Create Help submenu with custom items
             let help_menu = SubmenuBuilder::new(app, "Help")
                 .item(&config_guide)
+                .item(&github_repo)
                 .build()?;
 
             // Build the menu bar with standard macOS menus
@@ -958,6 +963,14 @@ pub fn run() {
                     println!("[menu] Configuration Guide clicked");
                     // Use the opener plugin to open URL
                     let url = "https://s3-file-viewer.moonrailgun.com/configuration-guide.html";
+                    if let Err(e) = app_handle.opener().open_url(url, None::<&str>) {
+                        eprintln!("[menu] Failed to open URL: {}", e);
+                    } else {
+                        println!("[menu] Successfully opened URL: {}", url);
+                    }
+                } else if event.id() == "github_repo" {
+                    println!("[menu] GitHub Repository clicked");
+                    let url = "https://github.com/moonrailgun/s3-file-viewer";
                     if let Err(e) = app_handle.opener().open_url(url, None::<&str>) {
                         eprintln!("[menu] Failed to open URL: {}", e);
                     } else {

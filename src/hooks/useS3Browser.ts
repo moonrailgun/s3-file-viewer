@@ -161,6 +161,15 @@ export function useS3Browser() {
       };
 
       await invoke('connect', { params });
+
+      // Bucket/prefix/objects belong to the previous connection (or the last
+      // session, via localStorage). Batched with setConnected, so no fetch
+      // runs against a bucket from another connection.
+      if (connectionId !== activeConnectionId) {
+        setObjects([]);
+        setBucket(null);
+        setPrefix('');
+      }
       setConnected(true);
       setActiveConnectionId(connectionId);
       setConn(params);

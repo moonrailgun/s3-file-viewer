@@ -49,6 +49,7 @@ function App() {
     hasMore,
     loadingMore,
     setView,
+    setBucket,
     setPrefix,
     ensureObjectUrl,
     fetchObjects,
@@ -252,13 +253,15 @@ function App() {
   // Handle open favorite
   const handleOpenFavorite = useCallback(
     async (favorite: Favorite) => {
-      // Check if we need to switch connections
-      if (activeConnectionId !== favorite.connectionId) {
-        await connectToSavedConnection(favorite.connectionId);
-      }
-
       // Switch to the bucket and prefix
-      selectConnectionBucket(favorite.connectionId, favorite.bucket);
+      if (activeConnectionId !== favorite.connectionId) {
+        if (!(await connectToSavedConnection(favorite.connectionId))) return;
+        // selectConnectionBucket's closure still sees the old connection;
+        // objects were already cleared by the connection switch
+        setBucket(favorite.bucket);
+      } else {
+        selectConnectionBucket(favorite.connectionId, favorite.bucket);
+      }
       setPrefix(favorite.prefix);
       setSelectedFile(null);
 
@@ -271,7 +274,15 @@ function App() {
         position: 'bottom-right',
       });
     },
-    [activeConnectionId, connectToSavedConnection, selectConnectionBucket, setPrefix, isMobile, closeNavbar]
+    [
+      activeConnectionId,
+      connectToSavedConnection,
+      selectConnectionBucket,
+      setBucket,
+      setPrefix,
+      isMobile,
+      closeNavbar,
+    ]
   );
 
   // Handle rename favorite

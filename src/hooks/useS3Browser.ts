@@ -136,7 +136,7 @@ export function useS3Browser() {
     }
   }
 
-  // Connect to a saved connection by ID
+  // Connect to a saved connection by ID; resolves true on success
   async function connectToSavedConnection(connectionId: string) {
     const savedConnections = loadSavedConnections();
     const conn = savedConnections.find((c) => c.id === connectionId);
@@ -146,7 +146,7 @@ export function useS3Browser() {
         color: 'red',
         position: 'bottom-right',
       });
-      return;
+      return false;
     }
 
     try {
@@ -189,12 +189,14 @@ export function useS3Browser() {
         color: 'green',
         position: 'bottom-right',
       });
+      return true;
     } catch (err: any) {
       notifications.show({
         message: `Connection failed: ${err}`,
         color: 'red',
         position: 'bottom-right',
       });
+      return false;
     } finally {
       setConnectionLoading((prev) => new Map(prev).set(connectionId, false));
     }

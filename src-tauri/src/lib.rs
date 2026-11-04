@@ -73,6 +73,8 @@ fn format_error_details<E: std::fmt::Display>(error: &E) -> String {
 #[derive(Clone)]
 struct AppState {
     s3_client: Arc<s3::Client>,
+    // Set when the connection is pinned to one bucket: skip ListBuckets (s3:ListAllMyBuckets)
+    bucket: Option<BucketInfo>,
 }
 
 #[cfg(not(any(target_os = "ios", target_os = "android")))]
@@ -103,6 +105,8 @@ struct ConnectionParams {
     access_key: String,
     secret_key: String,
     region: String,
+    #[serde(default)]
+    bucket: Option<String>,
 }
 
 #[cfg(not(any(target_os = "ios", target_os = "android")))]
@@ -187,26 +191,50 @@ async fn connect(
 
     let client = s3::Client::from_conf(conf);
 
-    println!("[connect] S3 client created, testing list_buckets...");
+    let bucket = params
+        .bucket
+        .as_deref()
+        .map(str::trim)
+        .filter(|b| !b.is_empty())
+        .map(|name| BucketInfo {
+            name: name.to_string(),
+            region: params.region.clone(),
+            creation_date: None,
+        });
 
-    // Simple test call
-    let test_result = client.list_buckets().send().await;
-    match &test_result {
-        Ok(resp) => {
-            let bucket_count = resp.buckets().len();
-            println!(
-                "[connect] list_buckets succeeded, found {} buckets",
-                bucket_count
-            );
+    if let Some(b) = &bucket {
+        // Pinned bucket: test with ListObjectsV2 (s3:ListBucket) instead of ListBuckets
+        println!(
+            "[connect] S3 client created, testing list_objects on {}...",
+            b.name
+        );
+        if let Err(e) = client
+            .list_objects_v2()
+            .bucket(&b.name)
+            .max_keys(1)
+            .send()
+            .await
+        {
+            eprintln!("[connect] list_objects error: {e:#?}");
+            return Err(format_s3_error(&e));
         }
-        Err(e) => {
-            eprintln!("[connect] list_buckets error: {e:#?}"); // Print detailed error
-            return Err(format_s3_error(e));
+    } else {
+        println!("[connect] S3 client created, testing list_buckets...");
+        match client.list_buckets().send().await {
+            Ok(resp) => println!(
+                "[connect] list_buckets succeeded, found {} buckets",
+                resp.buckets().len()
+            ),
+            Err(e) => {
+                eprintln!("[connect] list_buckets error: {e:#?}"); // Print detailed error
+                return Err(format_s3_error(&e));
+            }
         }
     }
 
     let app_state = AppState {
         s3_client: Arc::new(client),
+        bucket,
     };
 
     println!("[connect] AppState created, acquiring lock...");
@@ -226,6 +254,10 @@ async fn list_buckets(
 ) -> Result<Vec<BucketInfo>, String> {
     let guard = state.lock().await;
     let app = guard.as_ref().ok_or("Not connected")?;
+
+    if let Some(b) = &app.bucket {
+        return Ok(vec![b.clone()]);
+    }
 
     let resp = app
         .s3_client

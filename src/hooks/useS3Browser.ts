@@ -14,6 +14,7 @@ import {
   updateConnectionLastUsed,
   saveConnection,
   loadSavedConnections,
+  toConnectionParams,
 } from '../utils/connectionManager';
 import { inferMimeType } from '../utils/mimeTypes';
 
@@ -153,12 +154,7 @@ export function useS3Browser() {
       // Set loading for this connection
       setConnectionLoading((prev) => new Map(prev).set(connectionId, true));
 
-      const params = {
-        endpoint: conn.endpoint,
-        access_key: conn.access_key,
-        secret_key: conn.secret_key,
-        region: conn.region,
-      };
+      const params = toConnectionParams(conn);
 
       await invoke('connect', { params });
 
@@ -183,6 +179,11 @@ export function useS3Browser() {
         new Map(prev).set(connectionId, bucketList)
       );
       setBuckets(bucketList);
+
+      // A pinned connection opens its bucket directly. Set in a later render
+      // than the reset above, so it refetches even if the name is unchanged.
+      const pinned = params.bucket?.trim();
+      if (pinned) setBucket(pinned);
 
       notifications.show({
         message: 'Connected successfully',

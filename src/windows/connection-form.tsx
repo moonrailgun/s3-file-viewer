@@ -59,6 +59,7 @@ const ConnectionFormWindow: React.FC = () => {
           access_key: existingConn.access_key,
           secret_key: existingConn.secret_key,
           region: existingConn.region,
+          bucket: existingConn.bucket ?? '',
         });
       }
     }
@@ -249,6 +250,18 @@ const ConnectionFormWindow: React.FC = () => {
             placeholder="us-east-1"
             size="sm"
             required
+            spellCheck={false}
+          />
+
+          <TextInput
+            label="Bucket"
+            value={conn.bucket ?? ''}
+            onChange={(e) =>
+              updateConn({ bucket: e.currentTarget.value.trim() })
+            }
+            placeholder="my-bucket"
+            size="sm"
+            description="Optional, only use this bucket (no s3:ListAllMyBuckets needed)"
             spellCheck={false}
           />
 

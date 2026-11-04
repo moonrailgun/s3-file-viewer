@@ -5,6 +5,8 @@ export type ConnectionParams = {
   access_key: string;
   secret_key: string;
   region: string;
+  // Optional: pin the connection to one bucket (no s3:ListAllMyBuckets needed)
+  bucket?: string;
 };
 
 export type SavedConnection = ConnectionParams & {

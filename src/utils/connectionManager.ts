@@ -15,7 +15,19 @@ function generateConnectionId(): string {
 function generateConnectionName(conn: ConnectionParams): string {
   const endpoint = conn.endpoint || 'Unknown';
   const accessKey = conn.access_key || 'Unknown';
-  return `${endpoint} (${accessKey.substring(0, 8)}...)`;
+  const name = `${endpoint} (${accessKey.substring(0, 8)}...)`;
+  return conn.bucket ? `${conn.bucket} - ${name}` : name;
+}
+
+/**
+ * Same endpoint + key + pinned bucket = same saved connection
+ */
+function isSameConnection(a: ConnectionParams, b: ConnectionParams): boolean {
+  return (
+    a.endpoint === b.endpoint &&
+    a.access_key === b.access_key &&
+    (a.bucket ?? '') === (b.bucket ?? '')
+  );
 }
 
 /**
@@ -50,9 +62,7 @@ export function saveConnection(
   };
 
   // Check if a similar connection already exists
-  const existingIndex = connections.findIndex(
-    (c) => c.endpoint === conn.endpoint && c.access_key === conn.access_key
-  );
+  const existingIndex = connections.findIndex((c) => isSameConnection(c, conn));
 
   if (existingIndex >= 0) {
     // Update existing connection
@@ -123,9 +133,7 @@ export function updateConnection(
  */
 export function updateConnectionLastUsed(conn: ConnectionParams): void {
   const connections = loadSavedConnections();
-  const index = connections.findIndex(
-    (c) => c.endpoint === conn.endpoint && c.access_key === conn.access_key
-  );
+  const index = connections.findIndex((c) => isSameConnection(c, conn));
 
   if (index >= 0) {
     connections[index].last_used = new Date().toISOString();
@@ -157,5 +165,6 @@ export function toConnectionParams(saved: SavedConnection): ConnectionParams {
     access_key: saved.access_key,
     secret_key: saved.secret_key,
     region: saved.region,
+    bucket: saved.bucket,
   };
 }

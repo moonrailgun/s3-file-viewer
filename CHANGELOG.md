@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.4.0](https://github.com/moonrailgun/s3-file-viewer/compare/v1.3.2...v1.4.0) (2026-11-04)
+
+### Features
+
+* add github repo menu ([4d64f0e](https://github.com/moonrailgun/s3-file-viewer/commit/4d64f0ebcbb1bccdb8e2e28d37b95cd1a8b9ddf5))
+* **connections:** support connections pinned to a bucket ([70e1143](https://github.com/moonrailgun/s3-file-viewer/commit/70e1143aeb483d46b87e2037f98e599e3b5705e4))
+* **preview:** download files with progress before opening ([3b5bcac](https://github.com/moonrailgun/s3-file-viewer/commit/3b5bcac8db67d72c9a43fa8baddfe6b62a09ee1b))
+
+### Bug Fixes
+
+* **connections:** clear stale browsing state when switching ([1b8544a](https://github.com/moonrailgun/s3-file-viewer/commit/1b8544a97a67ea9d368f584e4667f333cdd43574))
+* **favorites:** open bookmarks after switching connections ([1dd793b](https://github.com/moonrailgun/s3-file-viewer/commit/1dd793b72fddc42c99d0db5932c77578b9166ae9))
+
+### Others
+
+* update config to release ([be1dc61](https://github.com/moonrailgun/s3-file-viewer/commit/be1dc617f87b84cf60ab3238ca8a560b1b2bdc3b))
+
 ## [1.3.2](https://github.com/moonrailgun/s3-file-viewer/compare/v1.3.1...v1.3.2) (2025-12-08)
 
 ### Bug Fixes

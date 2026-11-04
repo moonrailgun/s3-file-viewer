@@ -59,19 +59,19 @@ export function useFileOperations({
     [ensureObjectUrl]
   );
 
-  // Preview file in new window
+  // Preview file in new window: it downloads with progress, then opens the local copy
   const previewInNewWindow = useCallback(
     async (key: string) => {
       try {
-        const url = await ensureObjectUrl(key);
-        if (!url) {
-          throw new Error('no url');
+        if (!bucket) {
+          throw new Error('No bucket selected');
         }
 
         try {
           const label = `preview-${Date.now()}`;
+          const query = new URLSearchParams({ bucket, key });
           const win = new WebviewWindow(label, {
-            url,
+            url: `/src/windows/preview.html?${query}`,
             title: key,
             width: 1200,
             height: 800,
@@ -90,6 +90,10 @@ export function useFileOperations({
           });
         } catch (webviewError) {
           console.error('Webview creation failed:', webviewError);
+          const url = await ensureObjectUrl(key);
+          if (!url) {
+            throw new Error('no url');
+          }
           await openExternalUrl(url);
         }
       } catch (e) {
@@ -101,7 +105,7 @@ export function useFileOperations({
         });
       }
     },
-    [ensureObjectUrl]
+    [bucket, ensureObjectUrl]
   );
 
   // Download file to local

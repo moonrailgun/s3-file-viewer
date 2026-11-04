@@ -25,6 +25,7 @@ export default defineConfig(async () => ({
           __dirname,
           'src/windows/connection-form.html'
         ),
+        preview: resolve(__dirname, 'src/windows/preview.html'),
       },
     },
   },

@@ -895,9 +895,13 @@ pub fn run() {
             upload_object_with_progress,
             get_object_url,
             download_object,
+            download_for_preview,
             get_bucket_details
         ])
         .setup(|app| {
+            // ponytail: previews from the last session are cleared at startup; clean per window if disk use matters
+            let _ = std::fs::remove_dir_all(preview_temp_root());
+
             // Create Configuration Guide menu item
             let config_guide =
                 MenuItemBuilder::with_id("config_guide", "Configuration Guide").build(app)?;
@@ -1084,6 +1088,89 @@ async fn download_object(
         save_path
     );
     Ok(())
+}
+
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
+fn preview_temp_root() -> std::path::PathBuf {
+    std::env::temp_dir().join("s3-file-viewer-preview")
+}
+
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
+#[derive(Clone, Serialize)]
+struct DownloadProgress {
+    downloaded: u64,
+    total: u64,
+}
+
+/// Download an object into a temp file for the preview window, streaming progress.
+/// Returns the local path, which the window opens through the asset protocol.
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
+#[tauri::command]
+async fn download_for_preview(
+    bucket: String,
+    key: String,
+    on_progress: tauri::ipc::Channel<DownloadProgress>,
+    state: tauri::State<'_, tokio::sync::Mutex<Option<AppState>>>,
+) -> Result<String, String> {
+    use std::io::Write;
+
+    // Release the lock right away so the main window stays usable during long downloads
+    let client = state
+        .lock()
+        .await
+        .as_ref()
+        .ok_or("Not connected")?
+        .s3_client
+        .clone();
+
+    let resp = client
+        .get_object()
+        .bucket(&bucket)
+        .key(&key)
+        .send()
+        .await
+        .map_err(|e| format_s3_error(&e))?;
+    let total = resp.content_length().unwrap_or(0).max(0) as u64;
+
+    // Keep the original file name: the webview picks the content type from the extension
+    let name: String = key
+        .rsplit('/')
+        .next()
+        .filter(|n| !n.is_empty())
+        .unwrap_or("file")
+        .chars()
+        .map(|c| if r#"\:*?"<>|"#.contains(c) { '_' } else { c })
+        .collect();
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let dir = preview_temp_root().join(nanos.to_string());
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create temp dir: {}", e))?;
+    let path = dir.join(name);
+    let mut file =
+        std::fs::File::create(&path).map_err(|e| format!("Failed to create file: {}", e))?;
+
+    let mut body = resp.body;
+    let mut downloaded = 0u64;
+    let mut last_report = std::time::Instant::now();
+    let _ = on_progress.send(DownloadProgress { downloaded, total });
+    while let Some(chunk) = body
+        .try_next()
+        .await
+        .map_err(|e| format!("Failed to read object body: {}", e))?
+    {
+        file.write_all(&chunk)
+            .map_err(|e| format!("Failed to write file: {}", e))?;
+        downloaded += chunk.len() as u64;
+        if last_report.elapsed() >= Duration::from_millis(100) {
+            let _ = on_progress.send(DownloadProgress { downloaded, total });
+            last_report = std::time::Instant::now();
+        }
+    }
+    let _ = on_progress.send(DownloadProgress { downloaded, total });
+
+    Ok(path.to_string_lossy().into_owned())
 }
 
 #[cfg(not(any(target_os = "ios", target_os = "android")))]

@@ -1,6 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { ActionIcon, Group } from '@mantine/core';
-import { useMediaQuery } from '@mantine/hooks';
+import { ActionIcon } from '@mantine/core';
 import { Copy, Eye, Trash2 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
@@ -11,12 +10,20 @@ import {
   ContextMenuSeparator,
 } from '@/components/ui/context-menu';
 import { S3ObjectInfo } from '../types';
-import { humanFileSize, getFileName, formatDateTime } from '../utils/common';
-import { IconTrash, IconCopy, IconEye } from '@tabler/icons-react';
+import {
+  humanFileSize,
+  getFileName,
+  getFileExtension,
+  getFileType,
+  formatDateTime,
+} from '../utils/common';
+import { IconCopy, IconEye, IconTrash } from '@tabler/icons-react';
 import { getFileIconWithProps } from '../utils/icons';
 
 export type ObjectListTableProps = {
   objects: S3ObjectInfo[];
+  // Prefix being browsed; rows from deeper folders (search hits) show their path
+  currentPrefix?: string;
   onEnterDir: (key: string) => void;
   onDelete: (key: string) => void;
   onCopyUrl: (key: string) => void | Promise<void>;
@@ -25,59 +32,58 @@ export type ObjectListTableProps = {
   selectedFileKey?: string;
 };
 
+// Type chip color per file family (Mantine palette names)
+const TYPE_COLORS: Record<ReturnType<typeof getFileType>, string> = {
+  image: 'blue',
+  video: 'grape',
+  audio: 'pink',
+  document: 'gray',
+  archive: 'orange',
+  code: 'teal',
+  other: 'gray',
+};
+
+// Parent folder of a key, relative to the browsed prefix; '' when it is the prefix itself
+function relativeParent(key: string, currentPrefix: string): string {
+  const trimmed = key.replace(/\/+$/, '');
+  const parent = trimmed.slice(0, trimmed.lastIndexOf('/') + 1);
+  if (parent === currentPrefix) return '';
+  return parent.startsWith(currentPrefix)
+    ? parent.slice(currentPrefix.length)
+    : parent || '/';
+}
+
 // Virtual row component
 const VirtualRow: React.FC<{
   obj: S3ObjectInfo;
   isSelected: boolean;
-  index: number;
+  currentPrefix: string;
   onEnterDir: (key: string) => void;
   onDelete: (key: string) => void;
   onCopyUrl: (key: string) => void | Promise<void>;
   onPreviewExternal: (key: string) => void | Promise<void>;
   onSelectFile?: (file: S3ObjectInfo) => void;
-  isMobile: boolean;
 }> = ({
   obj,
   isSelected,
-  index,
+  currentPrefix,
   onEnterDir,
   onDelete,
   onCopyUrl,
   onPreviewExternal,
   onSelectFile,
-  isMobile,
 }) => {
+  const name = getFileName(obj.key);
+  const ext = obj.is_dir ? '' : getFileExtension(obj.key);
+  const base = ext ? name.slice(0, -(ext.length + 1)) : name;
+  const parent = relativeParent(obj.key, currentPrefix);
+  const chipColor = TYPE_COLORS[getFileType(obj.key)];
+
   return (
     <ContextMenu key={obj.key}>
       <ContextMenuTrigger asChild>
         <div
-          className="grid min-h-8 cursor-pointer items-center gap-1.5 px-3 py-0.5 text-[13px] transition-colors duration-150 select-none"
-          style={{
-            gridTemplateColumns: isMobile
-              ? '20px 1fr 60px'
-              : '20px 1fr 80px 130px 100px',
-            backgroundColor: isSelected
-              ? 'light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5))'
-              : index % 2 === 0
-                ? 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))'
-                : 'transparent',
-            borderBottom:
-              '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
-          }}
-          onMouseEnter={(e) => {
-            if (!isSelected) {
-              e.currentTarget.style.backgroundColor =
-                'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5))';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isSelected) {
-              e.currentTarget.style.backgroundColor =
-                index % 2 === 0
-                  ? 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))'
-                  : 'transparent';
-            }
-          }}
+          className={`sv-row${obj.is_dir ? ' is-dir' : ''}${isSelected ? ' is-selected' : ''}`}
           onClick={() => {
             if (obj.is_dir) {
               onEnterDir(obj.key);
@@ -89,100 +95,92 @@ const VirtualRow: React.FC<{
             !obj.is_dir ? onPreviewExternal(obj.key) : undefined
           }
         >
-          <div className="flex items-center">
+          <span className="sv-row-icon">
             {getFileIconWithProps(obj.key, obj.is_dir, {
-              size: 16,
-              color: 'var(--mantine-color-dimmed)',
+              size: 15,
+              stroke: 1.75,
             })}
-          </div>
-          <div className="min-w-0 overflow-hidden">
-            <div
-              className="text-[13px] font-medium break-words"
-              style={{
-                color: obj.is_dir
-                  ? 'var(--mantine-color-blue-6)'
-                  : 'var(--mantine-color-text)',
-              }}
-            >
-              {getFileName(obj.key)}
-            </div>
-            {obj.key !== getFileName(obj.key) && (
-              <div
-                className="text-[11px] break-words"
-                style={{
-                  color: 'var(--mantine-color-dimmed)',
-                }}
-              >
-                {obj.key.replace(`/${getFileName(obj.key)}`, '') || '/'}
-              </div>
-            )}
-            {/* Show size on mobile under filename */}
-            {isMobile && !obj.is_dir && (
-              <div
-                className="text-[11px]"
-                style={{
-                  color: 'var(--mantine-color-dimmed)',
-                }}
-              >
-                {humanFileSize(obj.size)}
-              </div>
-            )}
-          </div>
-          {!isMobile && <div>{obj.is_dir ? '-' : humanFileSize(obj.size)}</div>}
-          {!isMobile && (
-            <div className="text-nowrap">
-              {formatDateTime(obj.last_modified)}
-            </div>
-          )}
-          <div className="flex justify-center">
+          </span>
+
+          <div className="sv-name-cell">
+            <span className="sv-name" title={obj.key}>
+              {base}
+              {obj.is_dir ? (
+                <span className="sv-name-dim">/</span>
+              ) : (
+                ext && <span className="sv-name-dim">.{ext}</span>
+              )}
+            </span>
+            {parent && <span className="sv-name-path">{parent}</span>}
             {!obj.is_dir && (
-              <Group gap="xs" justify="center">
-                {!isMobile && (
-                  <ActionIcon
-                    variant="light"
-                    color="blue"
-                    size="sm"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      await onCopyUrl(obj.key);
-                    }}
-                    title="Copy URL"
-                    className="transition-all duration-200 ease-in-out"
-                  >
-                    <IconCopy size={14} />
-                  </ActionIcon>
-                )}
+              <div className="sv-row-actions">
                 <ActionIcon
-                  variant="light"
-                  color="grape"
+                  variant="subtle"
+                  color="gray"
+                  size="sm"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    await onCopyUrl(obj.key);
+                  }}
+                  title="Copy URL"
+                  aria-label="Copy URL"
+                >
+                  <IconCopy size={14} />
+                </ActionIcon>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     onPreviewExternal(obj.key);
                   }}
                   title="Preview"
-                  className="transition-all duration-200 ease-in-out"
+                  aria-label="Preview"
                 >
                   <IconEye size={14} />
                 </ActionIcon>
-                {!isMobile && (
-                  <ActionIcon
-                    variant="light"
-                    color="red"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(obj.key);
-                    }}
-                    title="Delete"
-                    className="transition-all duration-200 ease-in-out"
-                  >
-                    <IconTrash size={14} />
-                  </ActionIcon>
-                )}
-              </Group>
+                <ActionIcon
+                  className="sv-row-del"
+                  variant="subtle"
+                  color="red"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(obj.key);
+                  }}
+                  title="Delete"
+                  aria-label="Delete"
+                >
+                  <IconTrash size={14} />
+                </ActionIcon>
+              </div>
             )}
           </div>
+
+          <span className="sv-col-type">
+            {obj.is_dir ? (
+              <span className="sv-type-dir">Folder</span>
+            ) : (
+              <span
+                className="sv-type"
+                style={
+                  {
+                    '--sv-chip-bg': `var(--mantine-color-${chipColor}-light)`,
+                    '--sv-chip-fg': `var(--mantine-color-${chipColor}-light-color)`,
+                  } as React.CSSProperties
+                }
+              >
+                {ext ? ext.slice(0, 5).toUpperCase() : 'FILE'}
+              </span>
+            )}
+          </span>
+          <span className="sv-size sv-col-r">
+            {obj.is_dir ? '—' : humanFileSize(obj.size)}
+          </span>
+          <span className="sv-date sv-col-date">
+            {formatDateTime(obj.last_modified)}
+          </span>
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
@@ -223,6 +221,7 @@ const VirtualRow: React.FC<{
 
 export const ObjectListTable: React.FC<ObjectListTableProps> = ({
   objects,
+  currentPrefix = '',
   onEnterDir,
   onDelete,
   onCopyUrl,
@@ -231,14 +230,13 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
   selectedFileKey,
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
-  const isMobile = useMediaQuery('(max-width: 640px)');
 
   // Initialize virtualizer with dynamic height measurement
   const virtualizer = useVirtualizer({
     count: objects.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 32, // Compact layout: reduced to 32px
-    overscan: 5, // Render 5 extra items above and below viewport
+    estimateSize: () => 26, // Dense rows: 26px including the hairline
+    overscan: 8, // Render extra items above and below viewport
     measureElement:
       typeof window !== 'undefined' &&
       navigator.userAgent.indexOf('Firefox') === -1
@@ -255,13 +253,13 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
     }
   }, [objects.length > 0 ? objects[0]?.key : '']);
 
-  // Auto scroll to selected item
+  // Keep the selected item in view (no jump when it is already visible)
   useEffect(() => {
     if (selectedFileKey) {
       const index = objects.findIndex((obj) => obj.key === selectedFileKey);
       if (index !== -1) {
         virtualizer.scrollToIndex(index, {
-          align: 'center',
+          align: 'auto',
           behavior: 'smooth',
         });
       }
@@ -269,41 +267,21 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
   }, [selectedFileKey, objects, virtualizer]);
 
   return (
-    <div
-      className="flex h-full flex-col overflow-hidden rounded-lg shadow-sm"
-      style={{
-        border:
-          '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
-        backgroundColor: 'var(--mantine-color-body)',
-      }}
-    >
+    <div className="sv-list">
       {/* Table Header */}
-      <div
-        className="sticky top-0 z-10 grid gap-1.5 px-3 py-1 text-xs font-semibold"
-        style={{
-          gridTemplateColumns: isMobile
-            ? '20px 1fr 60px'
-            : '20px 1fr 80px 130px 100px',
-          backgroundColor:
-            'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))',
-          borderBottom:
-            '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
-        }}
-      >
-        <div></div>
-        <div>Name</div>
-        {!isMobile && <div>Size</div>}
-        {!isMobile && <div>Modified</div>}
-        <div className="text-center">Actions</div>
+      <div className="sv-list-head">
+        <span />
+        <span>Name</span>
+        <span className="sv-col-type">Type</span>
+        <span className="sv-col-r">Size</span>
+        <span className="sv-col-date">Modified</span>
       </div>
 
       {/* Scrollable Body */}
-      <div ref={parentRef} className="relative flex-1 overflow-auto">
+      <div ref={parentRef} className="sv-list-body">
         <div
           className="relative w-full"
-          style={{
-            height: `${virtualizer.getTotalSize()}px`,
-          }}
+          style={{ height: `${virtualizer.getTotalSize()}px` }}
         >
           {virtualizer.getVirtualItems().map((virtualRow) => {
             const obj = objects[virtualRow.index];
@@ -320,18 +298,16 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
                 <VirtualRow
                   obj={obj}
                   isSelected={selectedFileKey === obj.key}
-                  index={virtualRow.index}
+                  currentPrefix={currentPrefix}
                   onEnterDir={onEnterDir}
                   onDelete={onDelete}
                   onCopyUrl={onCopyUrl}
                   onPreviewExternal={onPreviewExternal}
                   onSelectFile={onSelectFile}
-                  isMobile={isMobile || false}
                 />
               </div>
             );
           })}
-
         </div>
       </div>
     </div>

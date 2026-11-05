@@ -18,6 +18,8 @@ interface MainContentAreaProps {
   onPreviewExternal: (key: string) => void;
   onSelectFile: (file: S3ObjectInfo | null) => void;
   ensureObjectUrl: (key: string) => Promise<string | undefined>;
+  // Prefix being browsed, used to label search hits from subfolders
+  currentPrefix: string;
 }
 
 /**
@@ -38,9 +40,14 @@ export const MainContentArea = React.memo(
     onPreviewExternal,
     onSelectFile,
     ensureObjectUrl,
+    currentPrefix,
   }: MainContentAreaProps) => {
     return (
-      <Box className="relative flex-1 overflow-auto" p="xs" {...dragHandlers}>
+      <Box
+        className="relative flex-1 overflow-auto"
+        p={view === 'list' ? 0 : 'xs'}
+        {...dragHandlers}
+      >
         {/* Drag and drop overlay */}
         {isDragging && (
           <Box
@@ -66,6 +73,7 @@ export const MainContentArea = React.memo(
         ) : view === 'list' ? (
           <ObjectListTable
             objects={objects}
+            currentPrefix={currentPrefix}
             onEnterDir={onEnterDir}
             onDelete={onDelete}
             onCopyUrl={onCopyUrl}

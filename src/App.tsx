@@ -447,6 +447,7 @@ function App() {
                 onPreviewExternal={fileOps.previewInNewWindow}
                 onSelectFile={setSelectedFile}
                 ensureObjectUrl={ensureObjectUrl}
+                currentPrefix={prefix || ''}
               />
             </ContextMenuWrapper>
 

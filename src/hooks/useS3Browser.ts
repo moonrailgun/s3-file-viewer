@@ -356,8 +356,8 @@ export function useS3Browser() {
       const res = (await invoke('list_objects', {
         bucket,
         prefix: prefix || null,
-        continuation_token: null,
-        max_keys: 1000,
+        continuationToken: null,
+        maxKeys: 1000,
       })) as ListObjectsResult;
       setObjects(res.objects);
       setNextContinuationToken(res.next_continuation_token || null);
@@ -384,8 +384,8 @@ export function useS3Browser() {
       const res = (await invoke('list_objects', {
         bucket,
         prefix: prefix || null,
-        continuation_token: nextContinuationToken,
-        max_keys: 1000,
+        continuationToken: nextContinuationToken,
+        maxKeys: 1000,
       })) as ListObjectsResult;
       setObjects((prev) => [...prev, ...res.objects]);
       setNextContinuationToken(res.next_continuation_token || null);

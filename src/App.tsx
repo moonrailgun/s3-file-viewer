@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useReducer } from 'react';
 import { AppShell, Modal } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -208,6 +208,14 @@ function App() {
     fetchObjects();
     setSelectedFile(null);
   }, [fetchObjects]);
+
+  // Favorites live in localStorage; re-render when they change so the
+  // toolbar star reflects adds/removes made anywhere
+  const [, bumpFavorites] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => {
+    window.addEventListener('refresh-favorites', bumpFavorites);
+    return () => window.removeEventListener('refresh-favorites', bumpFavorites);
+  }, []);
 
   // Check if current location is favorited
   const currentIsFavorited = activeConnectionId && bucket

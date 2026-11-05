@@ -430,6 +430,10 @@ async fn list_objects(
 
     for obj in resp.contents() {
         let key = obj.key().unwrap_or_default().to_string();
+        // Skip the marker object of the folder being listed ("photos/" inside photos/)
+        if prefix.as_deref() == Some(key.as_str()) {
+            continue;
+        }
         let size = obj.size().unwrap_or_default();
         let last_modified = obj
             .last_modified()

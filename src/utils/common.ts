@@ -72,6 +72,14 @@ export function getFileName(key: string): string {
   return parts[parts.length - 1] || key;
 }
 
+// Extension without the dot; '' when there is none (dotfiles like ".env" count as none)
+export function getFileExtension(key: string): string {
+  if (key.endsWith('/')) return '';
+  const name = getFileName(key);
+  const i = name.lastIndexOf('.');
+  return i > 0 ? name.slice(i + 1) : '';
+}
+
 // File type icons mapping
 export const FILE_TYPE_ICONS = {
   folder: 'IconFolder',

@@ -383,26 +383,8 @@ const CompactToolbarComponent: React.FC<CompactToolbarProps> = ({
   );
 };
 
-// Memoize the component to prevent unnecessary re-renders
-export const CompactToolbar = React.memo(
-  CompactToolbarComponent,
-  (prevProps, nextProps) => {
-    // Location props are compared so callbacks that close over the current
-    // bucket/prefix (refresh, upload, favorite, search) never go stale
-    return (
-      prevProps.bucket === nextProps.bucket &&
-      prevProps.prefix === nextProps.prefix &&
-      prevProps.view === nextProps.view &&
-      prevProps.loading === nextProps.loading &&
-      prevProps.hasBucket === nextProps.hasBucket &&
-      prevProps.isMobile === nextProps.isMobile &&
-      prevProps.searchQuery === nextProps.searchQuery &&
-      prevProps.searchMode === nextProps.searchMode &&
-      prevProps.isSearching === nextProps.isSearching &&
-      prevProps.isFavorited === nextProps.isFavorited
-      // Other function props are not compared (should be stable from useCallback)
-    );
-  }
-);
+// Default shallow compare: callbacks close over the current connection, bucket
+// and prefix, so a custom comparator that skips them can keep stale copies
+export const CompactToolbar = React.memo(CompactToolbarComponent);
 
 CompactToolbar.displayName = 'CompactToolbar';

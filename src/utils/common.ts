@@ -67,8 +67,8 @@ export function getFileType(
 }
 
 export function getFileName(key: string): string {
-  // Remove path and get just the filename
-  const parts = key.split('/');
+  // Last path segment; directory keys end with "/", so strip that first
+  const parts = key.replace(/\/+$/, '').split('/');
   return parts[parts.length - 1] || key;
 }
 

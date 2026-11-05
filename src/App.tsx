@@ -352,8 +352,8 @@ function App() {
       {/* Left Sidebar */}
       <AppShell.Navbar
         style={{
-          borderRight:
-            '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
+          borderRight: '1px solid var(--sv-rule)',
+          background: 'var(--sv-side)',
         }}
       >
         <ConnectionSidebar
@@ -389,6 +389,7 @@ function App() {
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
+          background: 'var(--sv-bg)',
         }}
       >
         {bucket ? (
@@ -472,8 +473,8 @@ function App() {
       {/* Right Sidebar - File Details */}
       <AppShell.Aside
         style={{
-          borderLeft:
-            '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
+          borderLeft: '1px solid var(--sv-rule)',
+          background: 'var(--sv-insp)',
         }}
       >
         <FileDetailsSidebar

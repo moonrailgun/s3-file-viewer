@@ -117,6 +117,49 @@ body {
   font-size: var(--compact-font-size-sm);
 }
 
+/* ==========================================================================
+   App chrome (sv-*): dense data-table layout
+   Tokens follow Mantine's color scheme attribute so light/dark stay in sync.
+   Selectors that style Mantine elements are scoped under a parent class,
+   because Mantine's stylesheet loads after this file and wins on equal
+   specificity.
+   ========================================================================== */
+:root {
+  --sv-bg: #fcfcfd;
+  --sv-side: #f4f5f7;
+  --sv-insp: #f9fafb;
+  --sv-field: #ffffff;
+  --sv-fg: #17181c;
+  --sv-muted: #646a79;
+  --sv-faint: #979dab;
+  --sv-rule: #e3e5ea;
+  --sv-line: #eef0f3;
+  --sv-hover: #eef0f5;
+  --sv-sel: #e3e7fb;
+  --sv-accent: #4458d0;
+  --sv-ok: #22a55a;
+  --sv-check: #eceef1;
+  --sv-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas,
+    'Liberation Mono', monospace;
+}
+
+:root[data-mantine-color-scheme='dark'] {
+  --sv-bg: #16171b;
+  --sv-side: #1c1d22;
+  --sv-insp: #1a1b20;
+  --sv-field: #111216;
+  --sv-fg: #e4e6eb;
+  --sv-muted: #8b91a0;
+  --sv-faint: #666c7b;
+  --sv-rule: #2a2c33;
+  --sv-line: #202228;
+  --sv-hover: #22242b;
+  --sv-sel: #262c4d;
+  --sv-accent: #8f9eff;
+  --sv-ok: #3ccf75;
+  --sv-check: #22242a;
+}
+
 /* Connection list item styles */
 .connection-item {
   cursor: pointer;

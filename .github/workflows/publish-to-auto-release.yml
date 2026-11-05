@@ -23,7 +23,7 @@ jobs:
             args: "--target x86_64-apple-darwin"
           - platform: "ubuntu-22.04" # for Tauri v1 you could replace this with ubuntu-20.04.
             args: ""
-          - platform: "windows-latest"
+          - platform: "windows-2022" # Keep VS 2022 until the locked cmake dependency supports VS 2026.
             args: ""
 
     runs-on: ${{ matrix.platform }}

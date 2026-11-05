@@ -295,6 +295,7 @@ body {
   border-bottom: 1px solid var(--sv-rule);
   background: var(--sv-bg);
   color: var(--sv-fg);
+  container-type: inline-size;
 }
 
 .sv-pathbar {
@@ -423,6 +424,27 @@ body {
   padding: 8px 10px;
   border-bottom: 1px solid var(--sv-rule);
   background: var(--sv-bg);
+}
+
+/* Narrow main area (e.g. inspector open on a small window): give the path room */
+@container (max-width: 760px) {
+  .sv-pathbar-scroll > .sv-path-scheme,
+  .sv-search .sv-kbd {
+    display: none;
+  }
+  .sv-search {
+    flex-basis: 170px;
+  }
+}
+
+@container (max-width: 560px) {
+  .sv-toolbar-sep {
+    display: none;
+  }
+  .sv-search {
+    flex-basis: 130px;
+    min-width: 96px;
+  }
 }
 
 /* Compact scrollbar styles */

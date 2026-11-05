@@ -86,10 +86,18 @@ const CompactToolbarComponent: React.FC<CompactToolbarProps> = ({
 
   const segments = useMemo(() => prefix.split('/').filter(Boolean), [prefix]);
 
-  // Keep the deepest segment in view when the path overflows
+  // Keep the deepest segment in view when the path overflows, including
+  // when the bar narrows (inspector opening, window resize)
   useEffect(() => {
     const el = pathScrollRef.current;
-    if (el) el.scrollLeft = el.scrollWidth;
+    if (!el) return;
+    const toEnd = () => {
+      el.scrollLeft = el.scrollWidth;
+    };
+    toEnd();
+    const observer = new ResizeObserver(toEnd);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [bucket, prefix]);
 
   const handleCreateFolder = async (folderName: string) => {

@@ -2,22 +2,19 @@ import React, { useState, useEffect } from 'react';
 import {
   Stack,
   Box,
-  Group,
   Text,
   UnstyledButton,
   Loader,
   Button,
   Collapse,
   ActionIcon,
-  Badge,
+  Tooltip,
 } from '@mantine/core';
 import {
-  IconServer,
   IconDatabase,
   IconChevronRight,
   IconChevronDown,
   IconPlus,
-  IconPlugConnected,
   IconX,
 } from '@tabler/icons-react';
 import { RefreshCw, Trash2, Plus, Edit, Database, Info } from 'lucide-react';
@@ -52,35 +49,6 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-
-// Generate a consistent color based on region string
-const getRegionColor = (region: string): string => {
-  const colors = [
-    'blue',
-    'cyan',
-    'teal',
-    'green',
-    'lime',
-    'yellow',
-    'orange',
-    'red',
-    'pink',
-    'grape',
-    'violet',
-    'indigo',
-  ];
-
-  // Simple hash function for string
-  let hash = 0;
-  for (let i = 0; i < region.length; i++) {
-    hash = region.charCodeAt(i) + ((hash << 5) - hash);
-    hash = hash & hash; // Convert to 32bit integer
-  }
-
-  // Map hash to color index
-  const index = Math.abs(hash) % colors.length;
-  return colors[index];
-};
 
 // Draggable Connection Item Component
 type DraggableConnectionItemProps = {
@@ -140,55 +108,20 @@ const DraggableConnectionItem: React.FC<DraggableConnectionItemProps> = ({
         <ContextMenuTrigger asChild>
           <UnstyledButton
             onClick={() => onToggleExpanded(conn.id)}
-            style={{
-              width: '100%',
-              padding: '6px 8px',
-              borderRadius: '4px',
-              border: active ? undefined : '1px solid transparent',
-              cursor: isDragging ? 'grabbing' : 'default',
-            }}
-            className={`connection-sidebar-item ${active ? 'connection-active' : ''} ${isDragging ? 'connection-dragging' : ''}`}
+            style={{ cursor: isDragging ? 'grabbing' : 'default' }}
+            className={`sv-tree-item${active ? ' is-active' : ''}${isDragging ? ' is-dragging' : ''}`}
             {...attributes}
             {...listeners}
           >
-            <Group gap={6} wrap="nowrap">
-              <Box style={{ width: 14, flexShrink: 0 }}>
-                {expanded ? (
-                  <IconChevronDown size={14} />
-                ) : (
-                  <IconChevronRight size={14} />
-                )}
-              </Box>
-              <Box style={{ width: 14, flexShrink: 0 }}>
-                {active ? (
-                  <IconPlugConnected
-                    size={14}
-                    color="var(--mantine-color-green-6)"
-                  />
-                ) : (
-                  <IconServer size={14} color="var(--mantine-color-gray-6)" />
-                )}
-              </Box>
-              <Text
-                size="xs"
-                fw={500}
-                truncate
-                style={{ flex: 1, minWidth: 0 }}
-              >
-                {conn.name}
-              </Text>
-              {loading && <Loader size={12} />}
-              {conn.region && (
-                <Badge
-                  size="xs"
-                  variant="light"
-                  color="gray"
-                  style={{ flexShrink: 0 }}
-                >
-                  {conn.region}
-                </Badge>
-              )}
-            </Group>
+            {expanded ? (
+              <IconChevronDown size={12} className="sv-tree-chevron" />
+            ) : (
+              <IconChevronRight size={12} className="sv-tree-chevron" />
+            )}
+            <span className={`sv-dot${active ? ' is-on' : ''}`} />
+            <span className="sv-tree-label">{conn.name}</span>
+            {loading && <Loader size={10} />}
+            {conn.region && <span className="sv-region">{conn.region}</span>}
           </UnstyledButton>
         </ContextMenuTrigger>
         <ContextMenuContent>
@@ -236,18 +169,16 @@ const DraggableConnectionItem: React.FC<DraggableConnectionItemProps> = ({
 
       {/* Buckets list */}
       <Collapse in={expanded}>
-        <Stack gap={2} ml={14} mt={2}>
+        <div className="sv-tree-children">
           {loading ? (
-            <Group gap={6} p="4px 8px">
-              <Loader size={12} />
-              <Text size="xs" c="dimmed">
-                Loading...
-              </Text>
-            </Group>
+            <div className="sv-tree-hint">
+              <Loader size={10} />
+              Loading...
+            </div>
           ) : buckets.length === 0 ? (
-            <Text size="xs" c="dimmed" p="4px 8px">
+            <div className="sv-tree-hint">
               {active ? 'No buckets' : 'Click to connect'}
-            </Text>
+            </div>
           ) : (
             buckets.map((bucket) => {
               const isSelected = selectedBucket === bucket.name && active;
@@ -256,35 +187,13 @@ const DraggableConnectionItem: React.FC<DraggableConnectionItemProps> = ({
                   <ContextMenuTrigger asChild>
                     <UnstyledButton
                       onClick={() => onSelectBucket(conn.id, bucket.name)}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                      }}
-                      className={`connection-sidebar-item ${isSelected ? 'bucket-selected' : ''}`}
+                      className={`sv-tree-item${isSelected ? ' is-selected' : ''}`}
                     >
-                      <Group gap={6} wrap="nowrap">
-                        <IconDatabase
-                          className="shrink-0"
-                          size={12}
-                          color="var(--mantine-color-blue-6)"
-                        />
-                        <Text
-                          size="xs"
-                          truncate
-                          style={{ flex: 1, minWidth: 0 }}
-                        >
-                          {bucket.name}
-                        </Text>
-                        {bucket.region && (
-                          <Badge
-                            size="xs"
-                            color={getRegionColor(bucket.region)}
-                            style={{ flexShrink: 0 }}
-                          >
-                            {bucket.region}
-                          </Badge>
-                        )}
-                      </Group>
+                      <IconDatabase size={13} className="sv-tree-icon" />
+                      <span className="sv-tree-label">{bucket.name}</span>
+                      {bucket.region && bucket.region !== conn.region && (
+                        <span className="sv-region">{bucket.region}</span>
+                      )}
                     </UnstyledButton>
                   </ContextMenuTrigger>
                   <ContextMenuContent>
@@ -302,7 +211,7 @@ const DraggableConnectionItem: React.FC<DraggableConnectionItemProps> = ({
               );
             })
           )}
-        </Stack>
+        </div>
       </Collapse>
     </Box>
   );
@@ -478,6 +387,7 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
     <Stack
       gap={0}
       h="100%"
+      className="sv-sidebar"
       style={{
         overflow: 'hidden',
         userSelect: 'none',
@@ -486,36 +396,20 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
         msUserSelect: 'none',
       }}
     >
-      {/* Header with New Connection button */}
-      <Box
-        p="xs"
-        style={{
-          borderBottom:
-            '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
-        }}
-      >
-        <Group gap="xs">
-          <Button
-            style={{ flex: 1 }}
-            size="xs"
-            leftSection={<IconPlus size={14} />}
-            onClick={onCreateConnection}
+      {/* Mobile close button */}
+      {isMobile && onCloseMobile && (
+        <Box px={6} pt={6} style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <ActionIcon
+            size="sm"
+            variant="subtle"
+            color="gray"
+            onClick={onCloseMobile}
+            title="Close Sidebar"
           >
-            New Connection
-          </Button>
-          {/* Mobile close button */}
-          {isMobile && onCloseMobile && (
-            <ActionIcon
-              size="sm"
-              variant="subtle"
-              onClick={onCloseMobile}
-              title="Close Sidebar"
-            >
-              <IconX size={16} />
-            </ActionIcon>
-          )}
-        </Group>
-      </Box>
+            <IconX size={16} />
+          </ActionIcon>
+        </Box>
+      )}
 
       {/* Favorites Section */}
       <FavoritesSection
@@ -523,6 +417,21 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
         onRenameFavorite={onRenameFavorite}
         onDeleteFavorite={onDeleteFavorite}
       />
+
+      <div className="sv-section-head">
+        <span className="sv-section-title">Connections</span>
+        <Tooltip label="New Connection" withArrow>
+          <ActionIcon
+            size="xs"
+            variant="subtle"
+            color="gray"
+            onClick={onCreateConnection}
+            aria-label="New Connection"
+          >
+            <IconPlus size={13} />
+          </ActionIcon>
+        </Tooltip>
+      </div>
 
       {/* Connections list */}
       <ContextMenu>
@@ -533,12 +442,23 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
               overflow: 'auto',
               position: 'relative',
             }}
-            p={4}
+            px={6}
+            pb={6}
           >
             {savedConnections.length === 0 ? (
-              <Text size="xs" c="dimmed" ta="center" mt="md">
-                No saved connections
-              </Text>
+              <Stack align="center" gap={8} mt="md">
+                <Text size="xs" c="dimmed">
+                  No saved connections
+                </Text>
+                <Button
+                  size="xs"
+                  variant="light"
+                  leftSection={<IconPlus size={14} />}
+                  onClick={onCreateConnection}
+                >
+                  New Connection
+                </Button>
+              </Stack>
             ) : (
               <DndContext
                 sensors={sensors}
@@ -549,7 +469,7 @@ export const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({
                   items={savedConnections.map((conn) => conn.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  <Stack gap={2}>
+                  <Stack gap={1}>
                     {savedConnections.map((conn) => {
                       const expanded = isExpanded(conn.id);
                       const active = isActive(conn.id);

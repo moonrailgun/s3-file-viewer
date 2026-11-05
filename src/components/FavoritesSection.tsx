@@ -1,14 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Stack,
-  Box,
-  Group,
-  Text,
-  UnstyledButton,
-  Collapse,
-  Badge,
-  Divider,
-} from '@mantine/core';
+import { Box, UnstyledButton, Collapse } from '@mantine/core';
 import {
   IconStar,
   IconChevronRight,
@@ -72,31 +63,23 @@ const DraggableFavoriteItem: React.FC<DraggableFavoriteItemProps> = ({
   };
 
   return (
-    <Box ref={setNodeRef} style={style} className="pl-8">
+    <Box ref={setNodeRef} style={style}>
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <UnstyledButton
             onClick={() => onOpen(favorite)}
-            style={{
-              width: '100%',
-              padding: '4px 8px',
-              borderRadius: '4px',
-              cursor: isDragging ? 'grabbing' : 'pointer',
-            }}
-            className="connection-sidebar-item border border-red-400"
+            style={{ cursor: isDragging ? 'grabbing' : 'default' }}
+            className={`sv-tree-item${isDragging ? ' is-dragging' : ''}`}
+            title={`${favorite.bucket}/${favorite.prefix}`}
             {...attributes}
             {...listeners}
           >
-            <Group gap={6} wrap="nowrap">
-              <Text
-                size="xs"
-                truncate
-                style={{ flex: 1, minWidth: 0 }}
-                fw={500}
-              >
-                {favorite.name}
-              </Text>
-            </Group>
+            <IconStar
+              size={13}
+              className="sv-tree-icon"
+              color="var(--mantine-color-yellow-6)"
+            />
+            <span className="sv-tree-label">{favorite.name}</span>
           </UnstyledButton>
         </ContextMenuTrigger>
         <ContextMenuContent>
@@ -209,71 +192,45 @@ export const FavoritesSection: React.FC<FavoritesSectionProps> = ({
   }
 
   return (
-    <>
-      <Box p={4}>
-        <UnstyledButton
-          onClick={() => setExpanded(!expanded)}
-          style={{
-            width: '100%',
-            padding: '4px 8px',
-            borderRadius: '4px',
-          }}
-          className="connection-sidebar-item"
-        >
-          <Group gap={6} wrap="nowrap">
-            <Box style={{ width: 14, flexShrink: 0 }}>
-              {expanded ? (
-                <IconChevronDown size={14} />
-              ) : (
-                <IconChevronRight size={14} />
-              )}
-            </Box>
-            <IconStar
-              size={14}
-              color="var(--mantine-color-yellow-6)"
-              style={{ flexShrink: 0 }}
-            />
-            <Text size="xs" fw={500} style={{ flex: 1 }}>
-              Favorites
-            </Text>
-            <Badge size="xs" variant="light" color="yellow">
-              {favorites.length}
-            </Badge>
-          </Group>
-        </UnstyledButton>
+    <Box px={6} pb={4}>
+      <UnstyledButton
+        className="sv-section-head"
+        onClick={() => setExpanded(!expanded)}
+        style={{ padding: '0 4px' }}
+      >
+        <span className="sv-section-title">Favorites</span>
+        <span className="sv-count">{favorites.length}</span>
+        {expanded ? (
+          <IconChevronDown size={12} className="sv-tree-chevron" />
+        ) : (
+          <IconChevronRight size={12} className="sv-tree-chevron" />
+        )}
+      </UnstyledButton>
 
-        <Collapse in={expanded}>
-          <Stack gap={2} mt={4}>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
+      <Collapse in={expanded}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={favorites.map((fav) => fav.id)}
+              strategy={verticalListSortingStrategy}
             >
-              <SortableContext
-                items={favorites.map((fav) => fav.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                {favorites.map((favorite) => (
-                  <DraggableFavoriteItem
-                    key={favorite.id}
-                    favorite={favorite}
-                    onOpen={onOpenFavorite}
-                    onRename={onRenameFavorite}
-                    onDelete={onDeleteFavorite}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
-          </Stack>
-        </Collapse>
-      </Box>
-
-      <Divider
-        style={{
-          borderColor:
-            'light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
-        }}
-      />
-    </>
+              {favorites.map((favorite) => (
+                <DraggableFavoriteItem
+                  key={favorite.id}
+                  favorite={favorite}
+                  onOpen={onOpenFavorite}
+                  onRename={onRenameFavorite}
+                  onDelete={onDeleteFavorite}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        </div>
+      </Collapse>
+    </Box>
   );
 };

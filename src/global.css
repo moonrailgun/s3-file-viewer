@@ -160,55 +160,128 @@ body {
   --sv-check: #22242a;
 }
 
-/* Connection list item styles */
-.connection-item {
-  cursor: pointer;
-  user-select: none;
+/* ---------- Sidebar ---------- */
+.sv-sidebar {
+  background: var(--sv-side);
+  color: var(--sv-fg);
+  font-size: 13px;
 }
 
-.connection-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Connection sidebar item styles */
-.connection-sidebar-item {
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.connection-sidebar-item:hover {
-  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6)) !important;
-}
-
-/* Connection item (active state) */
-.connection-sidebar-item.connection-active {
-  background-color: light-dark(var(--mantine-color-blue-1), var(--mantine-color-dark-5));
-  border: 1px solid light-dark(var(--mantine-color-blue-3), var(--mantine-color-blue-7));
-}
-
-/* Bucket item (selected state) */
-.connection-sidebar-item.bucket-selected {
-  background-color: light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5));
-}
-
-/* Badge styles in sidebar */
-.connection-sidebar-item .mantine-Badge-root {
-  font-size: 9px;
-  height: 16px;
-  padding: 0 6px;
-  font-weight: 500;
+.sv-sidebar .sv-section-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 28px;
+  padding: 0 6px 0 10px;
+  flex-shrink: 0;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  color: var(--sv-faint);
 }
 
-/* Drag and drop styles for connections */
-.connection-dragging {
-  opacity: 0.5;
-  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
-  transition: opacity 0.2s ease;
+.sv-section-head .sv-section-title {
+  flex: 1;
+  min-width: 0;
 }
 
-.connection-sidebar-item:not(.connection-dragging) {
-  transition: transform 0.2s ease, background-color 0.15s ease, border-color 0.15s ease;
+.sv-section-head .sv-count {
+  font-family: var(--sv-mono);
+  letter-spacing: 0;
+}
+
+.sv-sidebar .sv-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--sv-fg);
+  white-space: nowrap;
+  transition: background-color 0.12s ease;
+}
+
+.sv-sidebar .sv-tree-item:hover {
+  background: var(--sv-hover);
+}
+
+.sv-sidebar .sv-tree-item.is-selected {
+  background: var(--sv-sel);
+}
+
+.sv-tree-item.is-selected .sv-tree-icon {
+  color: var(--sv-accent);
+}
+
+.sv-tree-item.is-active .sv-tree-label {
+  font-weight: 600;
+}
+
+.sv-sidebar .sv-tree-item.is-dragging {
+  background: var(--sv-hover);
+}
+
+.sv-tree-icon {
+  flex-shrink: 0;
+  color: var(--sv-muted);
+}
+
+.sv-tree-chevron {
+  flex-shrink: 0;
+  color: var(--sv-faint);
+}
+
+.sv-tree-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sv-region {
+  flex-shrink: 0;
+  font-family: var(--sv-mono);
+  font-size: 10.5px;
+  color: var(--sv-faint);
+}
+
+.sv-dot {
+  width: 7px;
+  height: 7px;
+  margin: 0 3px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--sv-faint);
+}
+
+.sv-dot.is-on {
+  background: var(--sv-ok);
+  border-color: var(--sv-ok);
+}
+
+.sv-tree-children {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 1px 0 2px 14px;
+  padding-left: 6px;
+  border-left: 1px solid var(--sv-rule);
+}
+
+.sv-tree-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--sv-muted);
 }
 
 /* Compact scrollbar styles */
@@ -309,14 +382,13 @@ body {
     min-width: 44px;
   }
 
-  /* Remove hover states on touch devices */
-  .connection-sidebar-item:hover {
-    background-color: inherit !important;
+  /* Pressed state instead of hover on touch devices */
+  .sv-sidebar .sv-tree-item:hover {
+    background: none;
   }
 
-  /* Add active/pressed state for touch feedback */
-  .connection-sidebar-item:active {
-    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5)) !important;
+  .sv-sidebar .sv-tree-item:active {
+    background: var(--sv-hover);
   }
 
   button:active,

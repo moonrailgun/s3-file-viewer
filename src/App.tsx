@@ -350,7 +350,7 @@ function App() {
         collapsed: { mobile: !navbarOpened },
       }}
       aside={{
-        width: 320,
+        width: 300,
         breakpoint: 'md',
         collapsed: { mobile: !selectedFile, desktop: !selectedFile },
       }}

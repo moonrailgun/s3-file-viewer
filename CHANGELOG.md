@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.5.0](https://github.com/moonrailgun/s3-file-viewer/compare/v1.4.0...v1.5.0) (2026-11-05)
+
+### Features
+
+* **inspector:** redesign file details as a right-hand inspector ([e485e6d](https://github.com/moonrailgun/s3-file-viewer/commit/e485e6d0e2b9172e5e38e9906e2d94d5884a8c3f))
+* **list:** dense file list with type chips and subfolder paths ([c3a76ca](https://github.com/moonrailgun/s3-file-viewer/commit/c3a76ca252d9d3b9a3d5c159177929dc7621a719))
+* **sidebar:** redesign connections and favorites as a compact tree ([6d1f91f](https://github.com/moonrailgun/s3-file-viewer/commit/6d1f91fcb2a5a910d91e03ec57f7ed2c9f971a95))
+* **status-bar:** move item count and load more into a bottom status bar ([dea2a5a](https://github.com/moonrailgun/s3-file-viewer/commit/dea2a5aa19feac50652c69c43072defd740db352))
+* **theme:** share an indigo primary theme across windows ([9eee2d5](https://github.com/moonrailgun/s3-file-viewer/commit/9eee2d564b0b8ad7108938845ef4e7ad63b7ff42))
+* **toolbar:** replace breadcrumbs with an s3 path bar and inline search ([1583433](https://github.com/moonrailgun/s3-file-viewer/commit/1583433613c7ed9ab1b260e35f1f3982733e51f6))
+* **utils:** add getFileExtension helper ([fa7c6c2](https://github.com/moonrailgun/s3-file-viewer/commit/fa7c6c2d2eb0c410cd7ac6209e5aef28826cada9))
+
+### Bug Fixes
+
+* **browser:** correct object pagination parameters ([ce2ed03](https://github.com/moonrailgun/s3-file-viewer/commit/ce2ed0303d58f4ba939c19ee7ec8044c01868820))
+* **favorites:** sync the toolbar star after toggling a favorite ([09b0a1c](https://github.com/moonrailgun/s3-file-viewer/commit/09b0a1cafa9351e4d66ee88bb6d854cd0de620f8))
+* **objects:** skip the listed folder's own marker object ([7e6de4d](https://github.com/moonrailgun/s3-file-viewer/commit/7e6de4df2ef87928288b5df8abe1c2c574cbfbc0))
+* **toolbar:** keep the path bar readable when the main area is narrow ([74839a2](https://github.com/moonrailgun/s3-file-viewer/commit/74839a2736b37d0a9e4081731bb04814ee4c7720))
+* **toolbar:** use shallow memo so toolbar callbacks never go stale ([9640d29](https://github.com/moonrailgun/s3-file-viewer/commit/9640d29b6f64944855e1e28121bf244efb9cdd14))
+* **utils:** add PB unit to humanFileSize ([998f4a5](https://github.com/moonrailgun/s3-file-viewer/commit/998f4a574562e7ca25c39936578d05c75d665608))
+* **utils:** strip trailing slash in getFileName ([e3135a1](https://github.com/moonrailgun/s3-file-viewer/commit/e3135a1aff2d1f68a3dab5517dfcad5e35651fd6))
+
 ## [1.4.0](https://github.com/moonrailgun/s3-file-viewer/compare/v1.3.2...v1.4.0) (2026-11-04)
 
 ### Features

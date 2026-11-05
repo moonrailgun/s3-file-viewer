@@ -1,18 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  TextInput,
-  ActionIcon,
-  Group,
-  Box,
-  SegmentedControl,
-  Tooltip,
-} from '@mantine/core';
-import {
-  IconSearch,
-  IconX,
-  IconTextSize,
-  IconRegex,
-} from '@tabler/icons-react';
+import { ActionIcon, Loader, Tooltip } from '@mantine/core';
+import { IconSearch, IconX, IconTextSize, IconRegex } from '@tabler/icons-react';
 import { SearchMode } from '../types';
 
 export interface SearchBarProps {
@@ -30,8 +18,12 @@ export interface SearchBarProps {
   onEscape?: () => void;
   // Placeholder text
   placeholder?: string;
-  // Compact mode (for mobile)
-  compact?: boolean;
+  // Stretch to the full width of its container (mobile search row)
+  fullWidth?: boolean;
+  // Hint shown at the right edge while the field is empty, e.g. "⌘+F"
+  shortcutHint?: string;
+  // Ref to the underlying input, used by the focus hotkey
+  inputRef?: React.Ref<HTMLInputElement>;
 }
 
 /**
@@ -46,8 +38,10 @@ const SearchBarComponent: React.FC<SearchBarProps> = ({
   onSearch,
   onClear,
   onEscape,
-  placeholder = 'Search files... (Press Enter)',
-  compact = false,
+  placeholder = 'Search files ↵',
+  fullWidth = false,
+  shortcutHint,
+  inputRef,
 }) => {
   const [localQuery, setLocalQuery] = useState(value);
   const [localMode, setLocalMode] = useState<SearchMode>(mode);
@@ -77,13 +71,12 @@ const SearchBarComponent: React.FC<SearchBarProps> = ({
 
   // Handle mode change
   const handleModeChange = useCallback(
-    (newMode: string) => {
-      const searchMode = newMode as SearchMode;
-      setLocalMode(searchMode);
+    (newMode: SearchMode) => {
+      setLocalMode(newMode);
 
       // Re-trigger search with new mode if query exists and already searched
       if (localQuery.trim() && value) {
-        onSearch(localQuery, searchMode);
+        onSearch(localQuery, newMode);
       }
     },
     [localQuery, value, onSearch]
@@ -117,81 +110,62 @@ const SearchBarComponent: React.FC<SearchBarProps> = ({
     [localQuery, localMode, onSearch, handleClear, onEscape]
   );
 
-  return (
-    <Group gap="xs" wrap="nowrap">
-      <Box style={{ flex: 1, minWidth: compact ? 120 : 200 }}>
-        <TextInput
-          value={localQuery}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          size={compact ? 'xs' : 'sm'}
-          leftSection={<IconSearch size={14} />}
-          rightSection={
-            localQuery && (
-              <ActionIcon
-                size="xs"
-                variant="subtle"
-                onClick={handleClear}
-                title="Clear search"
-              >
-                <IconX size={14} />
-              </ActionIcon>
-            )
-          }
-          disabled={loading}
-        />
-      </Box>
+  const isRegex = localMode === 'regex';
 
-      {!compact && (
-        <Tooltip.Group>
-          <SegmentedControl
-            size="xs"
-            value={localMode}
-            onChange={handleModeChange}
-            data={[
-              {
-                value: 'fuzzy',
-                label: (
-                  <Tooltip label="Fuzzy search (case-insensitive)" withArrow>
-                    <Box style={{ display: 'flex', alignItems: 'center' }}>
-                      <IconTextSize size={14} />
-                    </Box>
-                  </Tooltip>
-                ),
-              },
-              {
-                value: 'regex',
-                label: (
-                  <Tooltip label="Regular expression" withArrow>
-                    <Box style={{ display: 'flex', alignItems: 'center' }}>
-                      <IconRegex size={14} />
-                    </Box>
-                  </Tooltip>
-                ),
-              },
-            ]}
-          />
-        </Tooltip.Group>
+  return (
+    <div className={`sv-search${fullWidth ? ' is-full' : ''}`}>
+      {loading ? <Loader size={12} /> : <IconSearch size={14} />}
+      <input
+        ref={inputRef}
+        value={localQuery}
+        onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        disabled={loading}
+        spellCheck={false}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+      />
+      {localQuery && (
+        <ActionIcon
+          size="xs"
+          variant="subtle"
+          color="gray"
+          onClick={handleClear}
+          aria-label="Clear search"
+        >
+          <IconX size={12} />
+        </ActionIcon>
       )}
-    </Group>
+      <Tooltip
+        label={
+          isRegex
+            ? 'Regular expression (click for fuzzy)'
+            : 'Fuzzy search, case-insensitive (click for regex)'
+        }
+        withArrow
+      >
+        <ActionIcon
+          size="xs"
+          variant={isRegex ? 'light' : 'subtle'}
+          color={isRegex ? undefined : 'gray'}
+          onClick={() => handleModeChange(isRegex ? 'fuzzy' : 'regex')}
+          disabled={loading}
+          aria-label={isRegex ? 'Regex mode' : 'Fuzzy mode'}
+        >
+          {isRegex ? <IconRegex size={13} /> : <IconTextSize size={13} />}
+        </ActionIcon>
+      </Tooltip>
+      {!localQuery && shortcutHint && (
+        <span className="sv-kbd">{shortcutHint}</span>
+      )}
+    </div>
   );
 };
 
-// Memoized version with custom comparison to prevent unnecessary re-renders
-export const SearchBar = React.memo(
-  SearchBarComponent,
-  (prevProps, nextProps) => {
-    // Only re-render if these props actually change
-    return (
-      prevProps.value === nextProps.value &&
-      prevProps.mode === nextProps.mode &&
-      prevProps.loading === nextProps.loading &&
-      prevProps.placeholder === nextProps.placeholder &&
-      prevProps.compact === nextProps.compact
-      // onSearch and onClear are not compared (should be stable from useCallback)
-    );
-  }
-);
+// Default shallow compare: onSearch changes with bucket/prefix, and a stale
+// copy would search the previous location
+export const SearchBar = React.memo(SearchBarComponent);
 
 SearchBar.displayName = 'SearchBar';

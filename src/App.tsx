@@ -8,7 +8,6 @@ import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
 import { useFileOperations } from './hooks/useFileOperations';
 import { useConnectionOperations } from './hooks/useConnectionOperations';
 import { useConnectionEventListener } from './hooks/useConnectionEventListener';
-import { useBreadcrumbs } from './hooks/useBreadcrumbs.tsx';
 import {
   openConnectionForm,
   openEditConnectionForm,
@@ -151,14 +150,13 @@ function App() {
     onPreviewFile: fileOps.previewInNewWindow,
   });
 
-  // Breadcrumbs navigation
-  const breadcrumbItems = useBreadcrumbs(
-    prefix || '',
-    bucket,
+  // Path bar navigation
+  const handleNavigate = useCallback(
     (path: string) => {
       setPrefix(path);
       setSelectedFile(null);
-    }
+    },
+    [setPrefix]
   );
 
   // Handle image preview in modal
@@ -395,7 +393,9 @@ function App() {
         {bucket ? (
           <>
             <CompactToolbar
-              breadcrumbItems={breadcrumbItems}
+              bucket={bucket}
+              prefix={prefix || ''}
+              onNavigate={handleNavigate}
               view={view}
               onChangeView={setView}
               onRefresh={handleRefresh}

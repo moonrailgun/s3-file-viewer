@@ -284,6 +284,147 @@ body {
   color: var(--sv-muted);
 }
 
+/* ---------- Toolbar ---------- */
+.sv-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 10px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--sv-rule);
+  background: var(--sv-bg);
+  color: var(--sv-fg);
+}
+
+.sv-pathbar {
+  flex: 1 1 0;
+  min-width: 80px;
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 2px 0 9px;
+  border: 1px solid var(--sv-rule);
+  border-radius: 6px;
+  background: var(--sv-field);
+  font-family: var(--sv-mono);
+  font-size: 12px;
+}
+
+.sv-pathbar-scroll {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+
+.sv-pathbar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.sv-path-scheme,
+.sv-path-sep {
+  flex-shrink: 0;
+  color: var(--sv-faint);
+}
+
+.sv-pathbar .sv-path-seg {
+  flex-shrink: 0;
+  min-width: 0;
+  min-height: 0;
+  padding: 2px 3px;
+  border-radius: 3px;
+  font: inherit;
+  color: var(--sv-fg);
+  cursor: pointer;
+}
+
+.sv-pathbar .sv-path-seg:hover {
+  background: var(--sv-hover);
+}
+
+.sv-path-seg.is-current {
+  font-weight: 600;
+}
+
+.sv-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.sv-toolbar-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--sv-rule);
+}
+
+.sv-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 1 240px;
+  min-width: 120px;
+  height: 28px;
+  padding: 0 2px 0 8px;
+  border: 1px solid var(--sv-rule);
+  border-radius: 6px;
+  background: var(--sv-field);
+  color: var(--sv-muted);
+}
+
+.sv-search.is-full {
+  width: 100%;
+  flex: none;
+  height: 32px;
+}
+
+.sv-search:focus-within {
+  border-color: var(--sv-accent);
+}
+
+.sv-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: none;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--sv-fg);
+}
+
+.sv-search input::placeholder {
+  color: var(--sv-faint);
+}
+
+.sv-search input:disabled {
+  opacity: 0.6;
+}
+
+.sv-kbd {
+  flex-shrink: 0;
+  padding: 3px 4px;
+  border: 1px solid var(--sv-rule);
+  border-radius: 3px;
+  font-family: var(--sv-mono);
+  font-size: 10px;
+  line-height: 1;
+  color: var(--sv-faint);
+}
+
+.sv-search-row {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--sv-rule);
+  background: var(--sv-bg);
+}
+
 /* Compact scrollbar styles */
 ::-webkit-scrollbar {
   width: 8px;

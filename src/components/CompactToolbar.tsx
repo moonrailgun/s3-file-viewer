@@ -1,13 +1,10 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
-  Group,
-  Breadcrumbs,
   ActionIcon,
   SegmentedControl,
-  Text,
-  Box,
   Collapse,
   Tooltip,
+  UnstyledButton,
 } from '@mantine/core';
 import {
   IconRefresh,
@@ -19,15 +16,21 @@ import {
   IconSearch,
   IconStar,
   IconStarFilled,
+  IconCopy,
 } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { CreateFolderModal } from './CreateFolderModal';
 import { SearchBar } from './SearchBar';
 import { SearchMode } from '../types';
 import { useGlobalHotkeys, getHotkeyDisplay } from '../hooks/useGlobalHotkeys';
 
 export type CompactToolbarProps = {
-  // Breadcrumb navigation
-  breadcrumbItems: React.ReactNode[];
+  // Current location, rendered as an s3:// path bar
+  bucket: string;
+  prefix: string;
+  // Navigate to a prefix in the current bucket ('' = bucket root)
+  onNavigate: (prefix: string) => void;
   // View mode
   view: string;
   onChangeView: (view: string) => void;
@@ -54,7 +57,9 @@ export type CompactToolbarProps = {
 };
 
 const CompactToolbarComponent: React.FC<CompactToolbarProps> = ({
-  breadcrumbItems,
+  bucket,
+  prefix,
+  onNavigate,
   view,
   onChangeView,
   onRefresh,
@@ -74,8 +79,18 @@ const CompactToolbarComponent: React.FC<CompactToolbarProps> = ({
 }) => {
   const [createFolderModalOpened, setCreateFolderModalOpened] = useState(false);
   const [creatingFolder, setCreatingFolder] = useState(false);
-  // Search is collapsed by default for both mobile and desktop
+  // On mobile the search field lives in a collapsible row below the toolbar
   const [searchExpanded, setSearchExpanded] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const pathScrollRef = useRef<HTMLDivElement>(null);
+
+  const segments = useMemo(() => prefix.split('/').filter(Boolean), [prefix]);
+
+  // Keep the deepest segment in view when the path overflows
+  useEffect(() => {
+    const el = pathScrollRef.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [bucket, prefix]);
 
   const handleCreateFolder = async (folderName: string) => {
     try {
@@ -100,6 +115,23 @@ const CompactToolbarComponent: React.FC<CompactToolbarProps> = ({
     input.click();
   };
 
+  const handleCopyPath = async () => {
+    try {
+      await writeText(`s3://${bucket}/${prefix}`);
+      notifications.show({
+        message: 'Path copied to clipboard',
+        color: 'green',
+        position: 'bottom-right',
+      });
+    } catch (e) {
+      notifications.show({
+        message: `Copy failed: ${e instanceof Error ? e.message : 'Unknown error'}`,
+        color: 'red',
+        position: 'bottom-right',
+      });
+    }
+  };
+
   // Handle ESC key - clear and collapse
   const handleSearchEscape = useCallback(() => {
     setSearchExpanded(false);
@@ -120,15 +152,8 @@ const CompactToolbarComponent: React.FC<CompactToolbarProps> = ({
         handler: () => {
           if (hasBucket) {
             setSearchExpanded(true);
-            // Focus search input after a brief delay
-            setTimeout(() => {
-              const searchInput = document.querySelector(
-                'input[placeholder*="Search"]'
-              ) as HTMLInputElement;
-              if (searchInput) {
-                searchInput.focus();
-              }
-            }, 100);
+            // The mobile row needs a moment to expand before it can take focus
+            setTimeout(() => searchInputRef.current?.focus(), 100);
           }
         },
       },
@@ -156,193 +181,189 @@ const CompactToolbarComponent: React.FC<CompactToolbarProps> = ({
     hasBucket
   );
 
+  const hasSearch = hasBucket && !!onSearch && !!onClearSearch;
+  const searchBar = hasSearch && (
+    <SearchBar
+      value={searchQuery}
+      mode={searchMode}
+      loading={isSearching}
+      onSearch={onSearch!}
+      onClear={onClearSearch!}
+      onEscape={handleSearchEscape}
+      fullWidth={isMobile}
+      shortcutHint={isMobile ? undefined : getHotkeyDisplay('F')}
+      inputRef={searchInputRef}
+    />
+  );
+
   return (
     <>
-      <Box>
-        <Group
-          justify="space-between"
-          p="xs"
-          style={{
-            borderBottom:
-              '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
-            backgroundColor:
-              'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))',
-          }}
-        >
-          {/* Left: Mobile menu button + Bucket name and Breadcrumbs */}
-          <Box
-            style={{
-              flex: 1,
-              minWidth: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
+      <div className="sv-toolbar">
+        {/* Mobile hamburger menu */}
+        {isMobile && onToggleNavbar && (
+          <ActionIcon
+            size="sm"
+            variant="subtle"
+            color="gray"
+            onClick={onToggleNavbar}
+            title="Toggle Sidebar"
           >
-            {/* Mobile hamburger menu */}
-            {isMobile && onToggleNavbar && (
-              <ActionIcon
-                size="sm"
-                variant="subtle"
-                onClick={onToggleNavbar}
-                title="Toggle Sidebar"
-              >
-                <IconMenu2 size={16} />
-              </ActionIcon>
-            )}
+            <IconMenu2 size={16} />
+          </ActionIcon>
+        )}
 
-            {hasBucket ? (
-              <Box
-                className="flex items-center gap-2"
-                style={{ flex: 1, minWidth: 0 }}
-              >
-                {/* Breadcrumbs */}
-                {breadcrumbItems.length > 0 ? (
-                  <Breadcrumbs
-                    separator="/"
-                    separatorMargin={4}
-                    className={isMobile ? 'hidden sm:flex' : ''}
-                  >
-                    {breadcrumbItems}
-                  </Breadcrumbs>
-                ) : (
-                  <Text
-                    size="sm"
-                    c="dimmed"
-                    className={isMobile ? 'hidden sm:inline' : ''}
-                  >
-                    /
-                  </Text>
-                )}
-              </Box>
-            ) : (
-              <Text
-                size="sm"
-                c="dimmed"
-                className={isMobile ? 'hidden sm:inline' : ''}
-              >
-                {hasBucket ? '/' : 'Please select a bucket'}
-              </Text>
-            )}
-          </Box>
+        {/* Path bar: s3://bucket/segment/segment/ */}
+        <div className="sv-pathbar">
+          {hasBucket ? (
+            <>
+              <div className="sv-pathbar-scroll" ref={pathScrollRef}>
+                {!isMobile && <span className="sv-path-scheme">s3://</span>}
+                <UnstyledButton
+                  className={`sv-path-seg${segments.length === 0 ? ' is-current' : ''}`}
+                  onClick={() => onNavigate('')}
+                >
+                  {bucket}
+                </UnstyledButton>
+                {segments.map((seg, i) => (
+                  <React.Fragment key={i}>
+                    <span className="sv-path-sep">/</span>
+                    <UnstyledButton
+                      className={`sv-path-seg${i === segments.length - 1 ? ' is-current' : ''}`}
+                      onClick={() =>
+                        onNavigate(`${segments.slice(0, i + 1).join('/')}/`)
+                      }
+                    >
+                      {seg}
+                    </UnstyledButton>
+                  </React.Fragment>
+                ))}
+                <span className="sv-path-sep">/</span>
+              </div>
+              <Tooltip label="Copy path" withArrow>
+                <ActionIcon
+                  size="xs"
+                  variant="subtle"
+                  color="gray"
+                  onClick={handleCopyPath}
+                  aria-label="Copy path"
+                >
+                  <IconCopy size={12} />
+                </ActionIcon>
+              </Tooltip>
+            </>
+          ) : (
+            <span className="sv-path-scheme">Please select a bucket</span>
+          )}
+        </div>
 
-          {/* Right: Actions */}
-          {hasBucket && (
-            <Group gap={4}>
-              {/* Search button - toggle search bar visibility */}
-              {onSearch && (
-                <Tooltip label={`Search (${getHotkeyDisplay('F')})`} withArrow>
-                  <ActionIcon
-                    size="sm"
-                    variant="subtle"
-                    onClick={() => setSearchExpanded(!searchExpanded)}
-                    color={searchExpanded || searchQuery ? 'blue' : undefined}
-                  >
-                    <IconSearch size={14} />
-                  </ActionIcon>
-                </Tooltip>
-              )}
+        {/* Desktop: search sits inline */}
+        {!isMobile && searchBar}
 
-              {/* Favorite button */}
-              {onToggleFavorite && (
-                <Tooltip label={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'} withArrow>
-                  <ActionIcon
-                    size="sm"
-                    variant="subtle"
-                    onClick={onToggleFavorite}
-                    color={isFavorited ? 'yellow' : undefined}
-                  >
-                    {isFavorited ? (
-                      <IconStarFilled size={14} />
-                    ) : (
-                      <IconStar size={14} />
-                    )}
-                  </ActionIcon>
-                </Tooltip>
-              )}
-
-              <Tooltip label={`Refresh (${getHotkeyDisplay('R')})`} withArrow>
+        {/* Right: Actions */}
+        {hasBucket && (
+          <div className="sv-toolbar-actions">
+            {isMobile && hasSearch && (
+              <Tooltip label={`Search (${getHotkeyDisplay('F')})`} withArrow>
                 <ActionIcon
                   size="sm"
                   variant="subtle"
-                  onClick={onRefresh}
-                  disabled={loading}
+                  color={searchExpanded || searchQuery ? undefined : 'gray'}
+                  onClick={() => setSearchExpanded(!searchExpanded)}
                 >
-                  <IconRefresh size={14} />
+                  <IconSearch size={15} />
                 </ActionIcon>
               </Tooltip>
+            )}
 
-              {!isMobile && (
-                <Tooltip label="New Folder" withArrow>
-                  <ActionIcon
-                    size="sm"
-                    variant="subtle"
-                    onClick={() => setCreateFolderModalOpened(true)}
-                  >
-                    <IconFolderPlus size={14} />
-                  </ActionIcon>
-                </Tooltip>
-              )}
+            <Tooltip label={`Refresh (${getHotkeyDisplay('R')})`} withArrow>
+              <ActionIcon
+                size="sm"
+                variant="subtle"
+                color="gray"
+                onClick={onRefresh}
+                disabled={loading}
+              >
+                <IconRefresh size={15} />
+              </ActionIcon>
+            </Tooltip>
 
+            <span className="sv-toolbar-sep" />
+
+            {!isMobile && (
+              <Tooltip label="New Folder" withArrow>
+                <ActionIcon
+                  size="sm"
+                  variant="subtle"
+                  color="gray"
+                  onClick={() => setCreateFolderModalOpened(true)}
+                >
+                  <IconFolderPlus size={15} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+
+            <Tooltip
+              label={`Upload File (${getHotkeyDisplay('O')})`}
+              withArrow
+            >
+              <ActionIcon
+                size="sm"
+                variant="subtle"
+                color="gray"
+                onClick={handleUploadClick}
+              >
+                <IconUpload size={15} />
+              </ActionIcon>
+            </Tooltip>
+
+            {/* Favorite button */}
+            {onToggleFavorite && (
               <Tooltip
-                label={`Upload File (${getHotkeyDisplay('O')})`}
+                label={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
                 withArrow
               >
                 <ActionIcon
                   size="sm"
                   variant="subtle"
-                  onClick={handleUploadClick}
+                  onClick={onToggleFavorite}
+                  color={isFavorited ? 'yellow' : 'gray'}
                 >
-                  <IconUpload size={14} />
+                  {isFavorited ? (
+                    <IconStarFilled size={15} />
+                  ) : (
+                    <IconStar size={15} />
+                  )}
                 </ActionIcon>
               </Tooltip>
+            )}
 
-              <Box ml={4}>
-                <SegmentedControl
-                  size="xs"
-                  value={view}
-                  onChange={onChangeView}
-                  data={[
-                    {
-                      value: 'list',
-                      label: <IconLayoutList size={14} />,
-                    },
-                    {
-                      value: 'thumb',
-                      label: <IconLayoutGrid size={14} />,
-                    },
-                  ]}
-                />
-              </Box>
-            </Group>
-          )}
-        </Group>
+            <span className="sv-toolbar-sep" />
 
-        {/* Search bar - collapsible for both desktop and mobile */}
-        {hasBucket && onSearch && onClearSearch && (
-          <Collapse in={searchExpanded}>
-            <Box
-              p="xs"
-              style={{
-                borderBottom:
-                  '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
-                backgroundColor:
-                  'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))',
-              }}
-            >
-              <SearchBar
-                value={searchQuery}
-                mode={searchMode}
-                loading={isSearching}
-                onSearch={onSearch}
-                onClear={onClearSearch}
-                onEscape={handleSearchEscape}
-                compact={isMobile}
-              />
-            </Box>
-          </Collapse>
+            <SegmentedControl
+              size="xs"
+              value={view}
+              onChange={onChangeView}
+              data={[
+                {
+                  value: 'list',
+                  label: <IconLayoutList size={14} />,
+                },
+                {
+                  value: 'thumb',
+                  label: <IconLayoutGrid size={14} />,
+                },
+              ]}
+            />
+          </div>
         )}
-      </Box>
+      </div>
+
+      {/* Mobile: search in a collapsible row */}
+      {isMobile && hasSearch && (
+        <Collapse in={searchExpanded}>
+          <div className="sv-search-row">{searchBar}</div>
+        </Collapse>
+      )}
 
       <CreateFolderModal
         opened={createFolderModalOpened}
@@ -358,8 +379,11 @@ const CompactToolbarComponent: React.FC<CompactToolbarProps> = ({
 export const CompactToolbar = React.memo(
   CompactToolbarComponent,
   (prevProps, nextProps) => {
-    // Compare primitive values and check if breadcrumb items array length changed
+    // Location props are compared so callbacks that close over the current
+    // bucket/prefix (refresh, upload, favorite, search) never go stale
     return (
+      prevProps.bucket === nextProps.bucket &&
+      prevProps.prefix === nextProps.prefix &&
       prevProps.view === nextProps.view &&
       prevProps.loading === nextProps.loading &&
       prevProps.hasBucket === nextProps.hasBucket &&
@@ -367,9 +391,8 @@ export const CompactToolbar = React.memo(
       prevProps.searchQuery === nextProps.searchQuery &&
       prevProps.searchMode === nextProps.searchMode &&
       prevProps.isSearching === nextProps.isSearching &&
-      prevProps.isFavorited === nextProps.isFavorited &&
-      prevProps.breadcrumbItems.length === nextProps.breadcrumbItems.length
-      // Function props are not compared (should be stable from useCallback)
+      prevProps.isFavorited === nextProps.isFavorited
+      // Other function props are not compared (should be stable from useCallback)
     );
   }
 );

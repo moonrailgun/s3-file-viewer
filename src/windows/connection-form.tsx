@@ -26,6 +26,7 @@ import {
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import '../global.css';
+import { theme } from '../theme';
 
 const ConnectionFormWindow: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -175,7 +176,7 @@ const ConnectionFormWindow: React.FC = () => {
   };
 
   return (
-    <MantineProvider defaultColorScheme="auto">
+    <MantineProvider defaultColorScheme="auto" theme={theme}>
       <Notifications position="top-right" />
       <Box p="md">
         <Stack gap="md">

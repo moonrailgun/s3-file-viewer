@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { Box, Group, MantineProvider, Paper, Progress, Text } from '@mantine/core';
 import { Channel, convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { getFileName, humanFileSize } from '../utils/common';
+import { theme } from '../theme';
 import '@mantine/core/styles.css';
 import '../global.css';
 
@@ -123,7 +124,7 @@ const PreviewWindow: React.FC = () => {
 
 // No StrictMode: its double effect run in dev would start the download twice
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <MantineProvider defaultColorScheme="auto">
+  <MantineProvider defaultColorScheme="auto" theme={theme}>
     <PreviewWindow />
   </MantineProvider>
 );

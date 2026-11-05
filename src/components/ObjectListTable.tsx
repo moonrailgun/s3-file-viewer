@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { ActionIcon, Group, Button, Loader, Center } from '@mantine/core';
+import { ActionIcon, Group } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { Copy, Eye, Trash2 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -23,9 +23,6 @@ export type ObjectListTableProps = {
   onPreviewExternal: (key: string) => void | Promise<void>;
   onSelectFile?: (file: S3ObjectInfo) => void;
   selectedFileKey?: string;
-  hasMore: boolean;
-  loadingMore: boolean;
-  onLoadMore: () => void;
 };
 
 // Virtual row component
@@ -232,9 +229,6 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
   onPreviewExternal,
   onSelectFile,
   selectedFileKey,
-  hasMore,
-  loadingMore,
-  onLoadMore,
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const isMobile = useMediaQuery('(max-width: 640px)');
@@ -308,7 +302,7 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
         <div
           className="relative w-full"
           style={{
-            height: `${virtualizer.getTotalSize() + (hasMore ? 60 : 0)}px`,
+            height: `${virtualizer.getTotalSize()}px`,
           }}
         >
           {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -338,28 +332,6 @@ export const ObjectListTable: React.FC<ObjectListTableProps> = ({
             );
           })}
 
-          {/* Load More Button at bottom of list */}
-          {hasMore && (
-            <div
-              className="absolute left-0 w-full px-3 py-3"
-              style={{
-                top: `${virtualizer.getTotalSize()}px`,
-                backgroundColor: 'var(--mantine-color-body)',
-                borderTop:
-                  '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
-              }}
-            >
-              <Center>
-                {loadingMore ? (
-                  <Loader size="sm" />
-                ) : (
-                  <Button variant="light" size="sm" onClick={onLoadMore}>
-                    Load More
-                  </Button>
-                )}
-              </Center>
-            </div>
-          )}
         </div>
       </div>
     </div>

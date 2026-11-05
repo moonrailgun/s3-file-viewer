@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Button, Loader, Center } from '@mantine/core';
 import { ObjectThumb } from './ObjectThumb';
 import { S3ObjectInfo } from '../types';
 
@@ -13,9 +12,6 @@ export type ObjectThumbGridProps = {
   onPreviewExternal: (key: string) => void | Promise<void>;
   onSelectFile?: (file: S3ObjectInfo) => void;
   selectedFileKey?: string;
-  hasMore: boolean;
-  loadingMore: boolean;
-  onLoadMore: () => void;
 };
 
 const THUMB_WIDTH = 220; // Width of each thumbnail
@@ -31,9 +27,6 @@ export const ObjectThumbGrid: React.FC<ObjectThumbGridProps> = ({
   onPreviewExternal,
   onSelectFile,
   selectedFileKey,
-  hasMore,
-  loadingMore,
-  onLoadMore,
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -116,7 +109,7 @@ export const ObjectThumbGrid: React.FC<ObjectThumbGridProps> = ({
       <div
         className="relative w-full"
         style={{
-          height: `${virtualizer.getTotalSize() + (hasMore ? 70 : 0)}px`,
+          height: `${virtualizer.getTotalSize()}px`,
         }}
       >
         {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -159,28 +152,6 @@ export const ObjectThumbGrid: React.FC<ObjectThumbGridProps> = ({
           );
         })}
 
-        {/* Load More Button at bottom of grid */}
-        {hasMore && (
-          <div
-            className="absolute left-0 right-0 px-3 py-3"
-            style={{
-              top: `${virtualizer.getTotalSize()}px`,
-              backgroundColor: 'var(--mantine-color-body)',
-              borderTop:
-                '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))',
-            }}
-          >
-            <Center>
-              {loadingMore ? (
-                <Loader size="sm" />
-              ) : (
-                <Button variant="light" size="sm" onClick={onLoadMore}>
-                  Load More
-                </Button>
-              )}
-            </Center>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -20,6 +20,7 @@ import { ContextMenuWrapper } from './components/ContextMenuWrapper';
 import { AppModals } from './components/AppModals';
 import { UploadProgressList } from './components/UploadProgressBar';
 import { FileDetailsSidebar } from './components/FileDetailsSidebar';
+import { StatusBar } from './components/StatusBar';
 import type { S3ObjectInfo, BucketInfo, Favorite } from './types';
 import { isMobilePlatform } from './utils/platform';
 import {
@@ -446,11 +447,17 @@ function App() {
                 onPreviewExternal={fileOps.previewInNewWindow}
                 onSelectFile={setSelectedFile}
                 ensureObjectUrl={ensureObjectUrl}
-                hasMore={hasMore}
-                loadingMore={loadingMore}
-                onLoadMore={loadMoreObjects}
               />
             </ContextMenuWrapper>
+
+            <StatusBar
+              objects={objects}
+              searchQuery={searchQuery}
+              hasSelection={!!selectedFile}
+              hasMore={hasMore}
+              loadingMore={loadingMore}
+              onLoadMore={loadMoreObjects}
+            />
 
             {/* Image Preview Modal */}
             <Modal
